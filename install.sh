@@ -33,8 +33,9 @@ detect_target() {
 }
 
 main() {
-  local target tmp url checksum_url
+  local target url checksum_url
   target="$(detect_target)"
+  # tmp is deliberately global so the EXIT trap can see it after main returns.
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
 
