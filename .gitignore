@@ -9,3 +9,5 @@ mosaic-*
 !.github/
 coverage/
 .mosaic/local/
+# bun build --compile scratch files
+*.bun-build
