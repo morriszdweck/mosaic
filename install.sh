@@ -8,6 +8,9 @@ set -euo pipefail
 
 REPO="morriszdweck/mosaic"
 INSTALL_DIR="${MOSAIC_INSTALL_DIR:-$HOME/.local/bin}"
+# Sibling of the bin directory, holding only the binary — the launcher runs the
+# binary from here precisely because we know what is (and is not) in it.
+LIBEXEC_DIR="${MOSAIC_LIBEXEC_DIR:-$(dirname "$INSTALL_DIR")/libexec/mosaic}"
 
 detect_target() {
   local os arch
@@ -44,6 +47,52 @@ verify_checksum() {
       shasum -a 256 -c "$name.sha256"
     fi
   ) >/dev/null 2>&1
+}
+
+# Write the launcher that gets installed as `mosaic`. Quoted heredoc: nothing
+# here is expanded at install time — the script resolves its own location at run
+# time so the install stays relocatable.
+write_launcher() {
+  cat > "$1" <<'LAUNCHER'
+#!/bin/sh
+# Mosaic launcher.
+#
+# The binary is a Bun single-file executable, and Bun reads bunfig.toml from the
+# current directory at startup and executes whatever its `preload` key names.
+# Starting mosaic inside an untrusted repo would therefore run that repo's code
+# inside the mosaic process, alongside the provider tokens mosaic has stored.
+#
+# So: start the binary from a directory holding nothing but the binary, and pass
+# the user's real working directory in MOSAIC_CWD. The CLI restores it once Bun
+# is past the startup phase that reads bunfig.toml.
+set -eu
+
+self="$0"
+# Follow symlinks so a linked or shimmed `mosaic` still finds libexec.
+while [ -L "$self" ]; do
+  link="$(readlink "$self")"
+  case "$link" in
+    /*) self="$link" ;;
+    *) self="$(dirname "$self")/$link" ;;
+  esac
+done
+bindir="$(cd "$(dirname "$self")" && pwd)"
+
+libexec="$bindir/../libexec/mosaic"
+binary="$libexec/mosaic-bin"
+
+if [ ! -x "$binary" ]; then
+  echo "mosaic: missing binary at $binary" >&2
+  echo "Reinstall: curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh | bash" >&2
+  exit 1
+fi
+
+MOSAIC_CWD="$PWD"
+export MOSAIC_CWD
+
+cd "$libexec"
+exec "$binary" "$@"
+LAUNCHER
 }
 
 main() {
@@ -92,8 +141,22 @@ main() {
     exit 1
   fi
 
-  mkdir -p "$INSTALL_DIR"
-  install -m 0755 "$tmp/$target" "$INSTALL_DIR/mosaic"
+  # Two-part install: the binary lives in its own libexec directory and a small
+  # launcher goes on PATH. See the launcher's own comment for why.
+  mkdir -p "$INSTALL_DIR" "$LIBEXEC_DIR"
+  install -m 0755 "$tmp/$target" "$LIBEXEC_DIR/mosaic-bin"
+
+  write_launcher "$tmp/launcher"
+  install -m 0755 "$tmp/launcher" "$INSTALL_DIR/mosaic"
+
+  # The launcher resolves libexec relative to itself; make sure that actually
+  # lands on the binary we just installed before declaring success.
+  if ! "$INSTALL_DIR/mosaic" --version >/dev/null 2>&1; then
+    echo "" >&2
+    echo "Installed, but '$INSTALL_DIR/mosaic' failed to run." >&2
+    echo "Expected the binary at: $LIBEXEC_DIR/mosaic-bin" >&2
+    exit 1
+  fi
 
   echo "✓ Installed to $INSTALL_DIR/mosaic"
   if ! echo ":$PATH:" | grep -q ":$INSTALL_DIR:"; then

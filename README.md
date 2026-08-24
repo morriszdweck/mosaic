@@ -14,6 +14,14 @@ curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh
 
 Builds available for macOS (arm64 + x64) and Linux (arm64 + x64). On Windows, use WSL2.
 
+This installs two files: a launcher at `~/.local/bin/mosaic` and the binary at
+`~/.local/libexec/mosaic/mosaic-bin`. The launcher starts the binary from its own
+directory, because Bun executables run the `preload` entries of whatever
+`bunfig.toml` sits in the current directory — so launching mosaic directly inside
+an untrusted repo would run that repo's code in-process. Set `MOSAIC_INSTALL_DIR`
+and `MOSAIC_LIBEXEC_DIR` to relocate either half; the launcher finds the binary
+relative to itself, so moving the pair together is fine.
+
 Or build from source (requires [Bun](https://bun.sh)):
 
 ```sh
@@ -22,6 +30,9 @@ cd mosaic
 bun install
 bun run compile   # → ./mosaic binary
 ```
+
+A from-source binary is the bare executable, without the launcher. Run it from a
+directory with no `bunfig.toml`, or pass `--cwd` to point it at your project.
 
 ## Quick start
 

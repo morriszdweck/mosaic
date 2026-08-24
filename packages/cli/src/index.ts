@@ -3,10 +3,18 @@ import { parseArgs, HELP } from "./args.ts";
 import { loginCommand, logoutCommand, authStatusCommand } from "./commands/auth.ts";
 import { sessionsCommand } from "./commands/sessions.ts";
 import { headless } from "./headless.ts";
+import { restoreLaunchCwd } from "./launch.ts";
 
 export const VERSION = "0.1.4";
 
 async function main(): Promise<number> {
+  try {
+    restoreLaunchCwd();
+  } catch (error) {
+    // Continuing would silently operate on the launcher's private directory.
+    console.error(`fatal: ${error instanceof Error ? error.message : String(error)}`);
+    return 1;
+  }
   const args = parseArgs(process.argv.slice(2));
   const cwd = args.flags.cwd ?? process.cwd();
 
