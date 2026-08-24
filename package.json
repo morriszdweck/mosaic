@@ -1,6 +1,6 @@
 {
   "name": "mosaic",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Mosaic — a Hermes-style terminal AI agent, from scratch. TUI-first, token-efficient, frictionless provider onboarding.",
   "license": "MIT",
   "type": "module",

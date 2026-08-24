@@ -1,6 +1,6 @@
 {
   "name": "@mosaic/cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Mosaic CLI entrypoint: TUI launcher, auth commands, headless mode.",
   "license": "MIT",
   "type": "module",

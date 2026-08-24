@@ -1,5 +1,6 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { useRenderer } from "@opentui/solid";
+import type { TextareaRenderable } from "@opentui/core";
 import {
   compactDeterministic,
   createAgentRuntime,
@@ -33,6 +34,9 @@ export function App(props: TuiOptions) {
 
   const [entries, setEntries] = createSignal<ChatEntry[]>([]);
   const [input, setInput] = createSignal("");
+  // The textarea owns the text; `input` only mirrors it. onContentChange fires
+  // with no payload, so the current value has to be read back off the renderable.
+  let textarea: TextareaRenderable | undefined;
   const [running, setRunning] = createSignal(false);
   const [model, setModel] = createSignal(props.model ?? "");
   const [pendingPermission, setPendingPermission] = createSignal<PendingPermission | null>(null);
@@ -143,7 +147,10 @@ export function App(props: TuiOptions) {
 
   async function submit() {
     const text = input().trim();
-    if (!text || running()) return;
+    if (!text) return;
+    // Clear the textarea itself, not just the mirror, or the sent text stays on
+    // screen. setText does not fire onContentChange, so reset the signal too.
+    textarea?.setText("");
     setInput("");
 
     if (running()) {
@@ -397,8 +404,9 @@ export function App(props: TuiOptions) {
 
       <box border borderStyle="rounded" borderColor={running() ? "#e0af68" : "#3b4261"} marginLeft={1} marginRight={1}>
         <textarea
+          ref={textarea}
           placeholder={running() ? "Agent is running — Esc to interrupt, or type a redirect" : "Message Mosaic… (/ for commands)"}
-          onContentChange={setInput}
+          onContentChange={() => setInput(textarea?.plainText ?? "")}
           onKeyDown={(key) => {
             if (key.name === "return" && !key.shift) {
               key.preventDefault();
