@@ -1,0 +1,22 @@
+{
+  "name": "@mosaic/core",
+  "version": "0.1.0",
+  "description": "Mosaic agent core: loop, tools, providers, memory, sessions. No UI deps.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test tests/"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.1.0",
+    "typescript": "^5.5.0"
+  }
+}
