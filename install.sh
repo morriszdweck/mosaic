@@ -43,14 +43,15 @@ main() {
   url="https://github.com/${REPO}/releases/latest/download/${target}"
   checksum_url="${url}.sha256"
 
-  curl -fsSL "$url" -o "$tmp/mosaic"
-  curl -fsSL "$checksum_url" -o "$tmp/mosaic.sha256"
+  # Save under the release asset name — the checksum file references it.
+  curl -fsSL "$url" -o "$tmp/$target"
+  curl -fsSL "$checksum_url" -o "$tmp/$target.sha256"
 
   # Verify checksum.
-  (cd "$tmp" && (sha256sum -c mosaic.sha256 2>/dev/null || shasum -a 256 -c mosaic.sha256))
+  (cd "$tmp" && (sha256sum -c "$target.sha256" 2>/dev/null || shasum -a 256 -c "$target.sha256"))
 
   mkdir -p "$INSTALL_DIR"
-  install -m 0755 "$tmp/mosaic" "$INSTALL_DIR/mosaic"
+  install -m 0755 "$tmp/$target" "$INSTALL_DIR/mosaic"
 
   echo "✓ Installed to $INSTALL_DIR/mosaic"
   if ! echo ":$PATH:" | grep -q ":$INSTALL_DIR:"; then
