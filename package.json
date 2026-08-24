@@ -1,0 +1,26 @@
+{
+  "name": "mosaic",
+  "version": "0.1.0",
+  "description": "Mosaic — a Hermes-style terminal AI agent, from scratch. TUI-first, token-efficient, frictionless provider onboarding.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @mosaic/cli dev",
+    "build": "bun run --filter @mosaic/cli build",
+    "compile": "bun run --filter @mosaic/cli compile",
+    "test": "bun test packages/core/tests && bun run --filter @mosaic/tui test",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "bunx biome check ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
