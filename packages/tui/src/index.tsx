@@ -24,9 +24,16 @@ function registerTerminalRestore(): void {
 /** Launch the Mosaic TUI. Returns the process exit code when the UI closes. */
 export async function startTui(options: TuiOptions): Promise<number> {
   registerTerminalRestore();
-  await render(() => <App {...options} />, {
-    screenMode: "alternate-screen", // don't trash the user's scrollback
-    exitOnCtrlC: false, // we handle Ctrl+C ourselves (double-tap to quit)
+  // NOTE: opentui's render() resolves as soon as the UI is *mounted* — it does
+  // not wait for the UI to close. If we returned then, the CLI would exit and
+  // kill the TUI a split second after startup. Block until the renderer is
+  // destroyed instead (onDestroy fires on renderer.destroy()).
+  await new Promise<void>((resolve) => {
+    render(() => <App {...options} />, {
+      screenMode: "alternate-screen", // don't trash the user's scrollback
+      exitOnCtrlC: false, // we handle Ctrl+C ourselves (double-tap to quit)
+      onDestroy: () => resolve(),
+    }).catch(() => resolve());
   });
   process.stdout.write(RESTORE_TERMINAL);
   return 0;
