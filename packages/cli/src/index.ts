@@ -4,7 +4,7 @@ import { loginCommand, logoutCommand, authStatusCommand } from "./commands/auth.
 import { sessionsCommand } from "./commands/sessions.ts";
 import { headless } from "./headless.ts";
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.4";
 
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));

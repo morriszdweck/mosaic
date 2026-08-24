@@ -1,6 +1,6 @@
 {
   "name": "@mosaic/core",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Mosaic agent core: loop, tools, providers, memory, sessions. No UI deps.",
   "license": "MIT",
   "type": "module",

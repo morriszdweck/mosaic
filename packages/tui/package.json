@@ -1,6 +1,6 @@
 {
   "name": "@mosaic/tui",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Mosaic TUI: OpenTUI front-end for the agent core.",
   "license": "MIT",
   "type": "module",
