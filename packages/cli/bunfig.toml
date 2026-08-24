@@ -1,0 +1,2 @@
+# Registers the Solid JSX transform for `bun run` / `bun build --compile`.
+preload = ["@opentui/solid/preload"]
