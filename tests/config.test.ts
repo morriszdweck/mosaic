@@ -67,3 +67,63 @@ describe("agents", () => {
     expect(AGENTS.mosaic!.system).toContain("not limited to programming");
   });
 });
+
+describe("project config isolation", () => {
+  test("mosaic looks for its own filenames, never the engine's", async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { loadProjectConfig } = await import("../src/config.ts");
+
+    const dir = mkdtempSync(join(tmpdir(), "mosaic-proj-"));
+    // An OpenCode user's config sitting on the path to their work is exactly
+    // how their providers leaked into Mosaic.
+    writeFileSync(join(dir, "opencode.json"), JSON.stringify({ model: "leaked/model" }));
+    expect(await loadProjectConfig(dir)).toBeNull();
+
+    writeFileSync(join(dir, "mosaic.json"), JSON.stringify({ model: "mine/model" }));
+    expect((await loadProjectConfig(dir))?.model).toBe("mine/model");
+
+    // .mosaic/config.json is the more specific location and wins.
+    mkdirSync(join(dir, ".mosaic"), { recursive: true });
+    writeFileSync(join(dir, ".mosaic", "config.json"), JSON.stringify({ model: "specific/model" }));
+    expect((await loadProjectConfig(dir))?.model).toBe("specific/model");
+  });
+
+  test("walks up to find a parent project config", async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { loadProjectConfig } = await import("../src/config.ts");
+
+    const root = mkdtempSync(join(tmpdir(), "mosaic-walk-"));
+    writeFileSync(join(root, "mosaic.json"), JSON.stringify({ model: "root/model" }));
+    const deep = join(root, "a", "b", "c");
+    mkdirSync(deep, { recursive: true });
+    expect((await loadProjectConfig(deep))?.model).toBe("root/model");
+  });
+
+  test("malformed project config is ignored rather than fatal", async () => {
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { loadProjectConfig } = await import("../src/config.ts");
+
+    const dir = mkdtempSync(join(tmpdir(), "mosaic-bad-"));
+    writeFileSync(join(dir, "mosaic.json"), "{ not json");
+    expect(await loadProjectConfig(dir)).toBeNull();
+  });
+});
+
+describe("merge", () => {
+  test("arrays extend and agents merge, so overrides add rather than replace", async () => {
+    const { mergeConfig } = await import("../src/config.ts");
+    const merged = mergeConfig(
+      { instructions: ["a"], plugin: ["p1"], agent: { mosaic: { model: "x" } } },
+      { instructions: ["b"], plugin: ["p2"], agent: { extra: { model: "y" } } },
+    );
+    expect(merged.instructions).toEqual(["a", "b"]);
+    expect(merged.plugin).toEqual(["p1", "p2"]);
+    expect(Object.keys(merged.agent!).sort()).toEqual(["extra", "mosaic"]);
+  });
+});

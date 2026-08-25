@@ -42,6 +42,14 @@ MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" --tui > "$tui_dir/tui.json"
 # The engine updates itself through Mosaic's release, not OpenCode's.
 export OPENCODE_DISABLE_AUTOUPDATE=1
 
+# Project config is discovered by *filename* — the engine walks up from the
+# working directory looking for opencode.json and .opencode/. That is a
+# different mechanism from the XDG paths above, so an OpenCode user with a
+# config anywhere on the path to their work (a ~/opencode.json is enough) had
+# its providers and models appear inside Mosaic. Mosaic reads its own
+# per-project config instead; see loadProjectConfig in src/config.ts.
+export OPENCODE_DISABLE_PROJECT_CONFIG=1
+
 engine="$ROOT/node_modules/.bin/opencode"
 if [ ! -x "$engine" ]; then
   echo "mosaic: engine not installed at $engine" >&2
