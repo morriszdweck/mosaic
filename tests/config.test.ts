@@ -169,3 +169,14 @@ describe("global config is not a project config", () => {
     expect(await loadProjectConfig(work, mosaicHome)).toBeNull();
   });
 });
+
+describe("background model", () => {
+  test("titles and summaries use the same model by default", async () => {
+    const { DEFAULT_MODEL } = await import("../src/config.ts");
+    const cfg = buildConfig("/opt/mosaic", "/home/u/.mosaic");
+    // Left unset the engine picks its own small model, which on the free tier
+    // can be slower than the one actually chosen.
+    expect(cfg.small_model).toBe(cfg.model);
+    expect(cfg.small_model).toBe(DEFAULT_MODEL);
+  });
+});

@@ -137,7 +137,10 @@ export async function runSetup(home = MOSAIC_HOME): Promise<SetupResult> {
       const ok = (await rl.question("  Continue with a free model? [Y/n]: ")).trim().toLowerCase();
       if (ok === "n" || ok === "no") return runSetup(home);
 
-      await writeChoice(ZEN_FREE_MODEL, home);
+      // Same model for background work: the free models are all free, so there
+      // is nothing to save by picking a different one, and the engine's own
+      // default can be the slow one.
+      await writeChoice(ZEN_FREE_MODEL, home, ZEN_FREE_MODEL);
       process.stderr.write("\n  ✓ Using Mosaic Free\n");
       process.stderr.write("    Switch any time with /model, or add your own key with\n");
       process.stderr.write("    `mosaic providers login`.\n\n");

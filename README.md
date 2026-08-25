@@ -103,10 +103,15 @@ fires the independent ones together, and synthesises the results. Specialists:
 | Agent | Role |
 | --- | --- |
 | `swarm` | Orchestrator. Decomposes, delegates, coordinates, synthesises. |
-| `researcher` | Fact-finding across docs and the codebase. |
-| `reviewer` | Correctness, edge cases, bug fixing. |
-| `optimizer` | Performance, memory, bundle size. |
-| `uiux-designer` | Layouts, components, accessibility. |
+| `researcher` | Finding things out: sources, options, prior art. |
+| `reviewer` | Checks work for correctness, gaps, and unstated assumptions. |
+| `optimizer` | Makes something smaller, faster, cheaper, or clearer. |
+| `uiux-designer` | How the result is presented and structured. |
+
+Upstream swarm is written for coding work. Mosaic ships general versions of the
+same roles — a reviewer that checks an argument as readily as a diff, an
+optimizer that tightens a process as readily as a hot loop — and layers them
+over the vendored copy, which stays untouched so re-fetching it is safe.
 
 Swarm comes from [opencode-swarm](https://github.com/morriszdweck/opencode-swarm)
 and is fetched by the installer into `vendor/swarm`, then synced into Mosaic's
@@ -169,6 +174,7 @@ The features that cost tokens are the ones worth being careful about:
 | 1000 memories | Cost grows with the store | Same per-turn cost as 10 |
 | Wide exploration | Lands in the main history | Runs in a subagent; only the conclusion returns |
 | Titles, summaries, compaction | Main model | `small_model`, set for you at setup |
+| Free tier background work | Engine's own pick, sometimes slow | The same model you chose |
 
 Setup pairs a cheap companion model automatically — Haiku alongside Sonnet,
 `gpt-4o-mini` alongside `gpt-4o`. Background work runs constantly and does not
@@ -239,6 +245,7 @@ src/plugin/memory/         the memory tool and its recall hook
 src/plugin/branding/       wordmark and example prompts, via TUI slots
 src/plugin/schedule/       the schedule tool and its timer
 src/swarm.ts               syncs Swarm's agents into Mosaic's config
+agents/                    Mosaic's general-purpose Swarm agents
 vendor/swarm/              opencode-swarm checkout (fetched by install.sh)
 src/setup/                 first-launch model picker
 prompts/mosaic.md          base system instructions

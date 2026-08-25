@@ -19,7 +19,12 @@ beforeEach(() => {
   writeFileSync(join(root, "vendor", "swarm", "skills", "opencode-swarm", "SKILL.md"), "# skill\n");
   agent("swarm", "orchestrator");
   agent("reviewer", "reviews things");
-  paths = { source: join(root, "vendor", "swarm"), configDir: join(home, "config", "opencode") };
+  mkdirSync(join(root, "agents"), { recursive: true });
+  paths = {
+    source: join(root, "vendor", "swarm"),
+    overrides: join(root, "agents"),
+    configDir: join(home, "config", "opencode"),
+  };
 });
 
 afterEach(() => {
@@ -46,11 +51,42 @@ describe("sync", () => {
     expect(second.removed).toEqual([]);
   });
 
-  test("does nothing when swarm is not vendored", async () => {
+  test("does nothing when neither source exists", async () => {
     rmSync(join(root, "vendor"), { recursive: true, force: true });
+    rmSync(join(root, "agents"), { recursive: true, force: true });
     // Swarm is optional; a missing checkout must not break startup.
     const result = await syncSwarm(paths);
     expect(result).toEqual({ installed: [], skipped: [], removed: [] });
+  });
+
+  test("Mosaic's own agents install without the vendored checkout", async () => {
+    rmSync(join(root, "vendor"), { recursive: true, force: true });
+    writeFileSync(join(root, "agents", "swarm.md"), "---\ndescription: general\n---\ngeneral\n");
+    const result = await syncSwarm(paths);
+    expect(result.installed).toContain("swarm.md");
+  });
+});
+
+describe("overrides", () => {
+  test("Mosaic's general version replaces the vendored coding one", async () => {
+    // Upstream swarm is written for coding work; Mosaic ships general versions
+    // under the same names, and they have to be the ones that land.
+    writeFileSync(join(root, "agents", "reviewer.md"), "---\ndescription: general reviewer\n---\nGENERAL\n");
+    await syncSwarm(paths);
+    expect(readFileSync(join(paths.configDir, "agent", "reviewer.md"), "utf8")).toContain("GENERAL");
+  });
+
+  test("a vendored agent with no override is still installed", async () => {
+    writeFileSync(join(root, "agents", "reviewer.md"), "---\ndescription: general\n---\nGENERAL\n");
+    await syncSwarm(paths);
+    // swarm.md exists only upstream in this fixture.
+    expect(readFileSync(join(paths.configDir, "agent", "swarm.md"), "utf8")).toContain("orchestrator");
+  });
+
+  test("each name is installed once, not duplicated across sources", async () => {
+    writeFileSync(join(root, "agents", "reviewer.md"), "---\ndescription: general\n---\nGENERAL\n");
+    const result = await syncSwarm(paths);
+    expect(result.installed.filter((f) => f === "reviewer.md")).toHaveLength(1);
   });
 });
 

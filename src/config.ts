@@ -45,6 +45,13 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
     // usable even if setup is skipped. ~/.mosaic/config.json overrides it.
     model: DEFAULT_MODEL,
 
+    // Titles, summaries and compaction run on small_model. Left unset the
+    // engine picks its own, which on the free tier can be slower than the
+    // model you actually chose — so default it to the same one. Setup writes
+    // an explicit pairing for paid providers, where a cheap companion is both
+    // faster and cheaper than the main model.
+    small_model: DEFAULT_MODEL,
+
     default_agent: "mosaic",
     agent: AGENTS,
 

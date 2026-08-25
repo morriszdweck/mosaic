@@ -23,6 +23,15 @@ const MOSAIC_HOME = process.env.MOSAIC_HOME ?? join(homedir(), ".mosaic");
 export interface SwarmPaths {
   /** Vendored checkout, as placed by install.sh. */
   source: string;
+  /**
+   * Mosaic's own agent definitions, layered over the vendored ones.
+   *
+   * Upstream swarm is written for coding work. Mosaic is a general-purpose
+   * agent, so it ships general versions of the same roles under the same
+   * names and applies them last. The vendored checkout stays untouched, which
+   * keeps re-fetching it safe.
+   */
+  overrides: string;
   /** $XDG_CONFIG_HOME/opencode, where the engine looks. */
   configDir: string;
 }
@@ -30,6 +39,7 @@ export interface SwarmPaths {
 export function defaultPaths(root: string, home = MOSAIC_HOME): SwarmPaths {
   return {
     source: join(root, "vendor", "swarm"),
+    overrides: join(root, "agents"),
     configDir: join(home, "config", "opencode"),
   };
 }
@@ -65,7 +75,10 @@ export interface SyncResult {
 export async function syncSwarm(paths: SwarmPaths): Promise<SyncResult> {
   const result: SyncResult = { installed: [], skipped: [], removed: [] };
   const agentSrc = join(paths.source, "agents");
-  if (!existsSync(agentSrc)) return result; // not vendored — swarm is optional
+  const overrideSrc = paths.overrides;
+  // Either source is enough: Mosaic's own agents work without the vendored
+  // checkout, and the checkout works without overrides.
+  if (!existsSync(agentSrc) && !existsSync(overrideSrc)) return result;
 
   const previous = await readManifest(paths.configDir);
   const agentDir = join(paths.configDir, "agent");
@@ -75,14 +88,27 @@ export async function syncSwarm(paths: SwarmPaths): Promise<SyncResult> {
 
   const manifest: Manifest = { agents: [], skills: [] };
 
-  for (const file of (await readdir(agentSrc)).filter((f) => f.endsWith(".md"))) {
+  // Mosaic's own definitions win, so an override replaces the vendored file of
+  // the same name rather than both being copied.
+  const sources = new Map<string, string>();
+  for (const [dir, enabled] of [
+    [agentSrc, existsSync(agentSrc)],
+    [overrideSrc, existsSync(overrideSrc)],
+  ] as Array<[string, boolean]>) {
+    if (!enabled) continue;
+    for (const file of (await readdir(dir)).filter((f) => f.endsWith(".md"))) {
+      sources.set(file, join(dir, file));
+    }
+  }
+
+  for (const [file, src] of sources) {
     const dest = join(agentDir, file);
     // Ours to manage only if we wrote it, or nothing is there.
     if (existsSync(dest) && !previous.agents.includes(file)) {
       result.skipped.push(file);
       continue;
     }
-    await cp(join(agentSrc, file), dest);
+    await cp(src, dest);
     manifest.agents.push(file);
     result.installed.push(file);
   }
