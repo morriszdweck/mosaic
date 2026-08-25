@@ -77,7 +77,7 @@ jobs:
           bun run src/swarm.ts
           test -f "$MOSAIC_HOME/config/opencode/agent/swarm.md"
           ./bin/mosaic debug config > "$RUNNER_TEMP/swarm.json"
-          for a in swarm researcher reviewer optimizer uiux-designer; do
+          for a in swarm researcher reviewer optimizer designer; do
             grep -q "\"$a\"" "$RUNNER_TEMP/swarm.json" || { echo "swarm agent $a missing" >&2; exit 1; }
           done
 
