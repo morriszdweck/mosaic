@@ -45,7 +45,9 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
 
     // The base instructions that make this a general assistant rather than a
     // coding tool. Agent-level `system` prompts layer on top of these.
-    instructions: [join(root, "prompts", "mosaic.md")],
+    // SOUL.md is the user's own: tone, name, standing preferences. It comes
+    // last so it can override anything Mosaic says about itself.
+    instructions: [join(root, "prompts", "mosaic.md"), ...soulFiles(home)],
 
     // Memory is Mosaic's own addition — see src/plugin/memory.
     plugin: [join(root, "src", "plugin", "memory", "index.ts")],
@@ -53,6 +55,17 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
     // Skills are the engine's own feature and it discovers them itself, under
     // the XDG directories the launcher already points at $MOSAIC_HOME.
   };
+}
+
+/**
+ * Personality files, in the order they should be applied.
+ *
+ * Borrowed from Hermes' SOUL.md: a place to say "call me X, be blunt, always
+ * answer in metric" once instead of at the start of every conversation. Both
+ * locations are optional and neither is created for you.
+ */
+function soulFiles(home: string): string[] {
+  return [join(home, "SOUL.md")].filter((p) => existsSync(p));
 }
 
 /**

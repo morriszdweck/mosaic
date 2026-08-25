@@ -40,6 +40,29 @@ jobs:
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           ./bin/mosaic debug agent mosaic | grep -q '"memory": true'
 
+      # A ~/opencode.json used to leak its providers into Mosaic, because the
+      # engine finds project config by walking up for that filename.
+      - name: OpenCode project config does not leak in
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          printf '{"model":"leaked/model"}' > "$HOME/opencode.json"
+          cd "$HOME"
+          "$GITHUB_WORKSPACE/bin/mosaic" debug config > "$RUNNER_TEMP/leak.json"
+          if grep -q "leaked/model" "$RUNNER_TEMP/leak.json"; then
+            echo "OpenCode project config leaked into Mosaic" >&2
+            exit 1
+          fi
+          rm -f "$HOME/opencode.json"
+
+      - name: Heartbeat scheduling works without an agent call
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          ./bin/mosaic heartbeat add ci --every 1h --prompt "noop"
+          ./bin/mosaic heartbeat list | grep -q ci
+          ./bin/mosaic heartbeat disable ci
+          ./bin/mosaic heartbeat tick | grep -q "Nothing due"
+          ./bin/mosaic heartbeat remove ci
+
       # Branding lives in the TUI's own config; a plugin listed in the agent
       # config gets only its server half loaded and is silently never drawn.
       - name: Branding is registered in the TUI config

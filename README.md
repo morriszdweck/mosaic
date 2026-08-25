@@ -16,6 +16,11 @@ Mosaic adds:
   relevance and injected under a strict token budget.
 - **Its own state** — config, sessions, and credentials live in `~/.mosaic`, so
   Mosaic and OpenCode can coexist without touching each other.
+- **Heartbeat** — recurring wake-ups that run the agent on a schedule, each one
+  a fresh run so cost per tick stays flat.
+- **First-launch setup** — pick a model in one keypress, including a free one
+  that needs no account or card.
+- **Personality** — a `SOUL.md` that shapes tone and standing preferences.
 - **Its own face** — Mosaic's wordmark and example prompts replace the engine's,
   through its TUI slot API rather than by forking the interface.
 
@@ -78,11 +83,59 @@ turn.
 Memories are scoped: `user` and `preference` facts apply everywhere, while
 `project` facts only surface in the directory they were learned in.
 
+## Heartbeat
+
+Recurring agent runs, in the spirit of Hermes' heartbeat jobs:
+
+```sh
+mosaic heartbeat add inbox --every 30m \
+  --prompt "Check ~/notes/inbox.md. If anything is unfiled, file it and say what moved."
+mosaic heartbeat list
+mosaic heartbeat run        # scheduler in the foreground
+mosaic heartbeat tick       # run what is due once, for cron or launchd
+```
+
+Each tick is a **fresh run**: the agent gets the prompt and its tools, not the
+history of previous ticks. Tick 500 costs what tick 1 did, where a resident
+agent's per-tick cost climbs until it compacts. Write prompts that check state
+and act only if needed — *"if X, do Y, otherwise say nothing to do"*.
+
+Guardrails, because an unattended loop that spends money needs them: minimum
+60s interval, `--max-runs` to bound a job, `--agent` to restrict which agent
+runs it, and `enable`/`disable` without deleting.
+
+## Personality
+
+Drop a `SOUL.md` in `~/.mosaic/` and it is appended to Mosaic's own instructions
+— last, so it wins:
+
+```markdown
+Call me Morris. Be blunt; skip the preamble.
+Default to metric. When you are guessing, say so.
+```
+
+## Token efficiency
+
+The features that cost tokens are the ones worth being careful about:
+
+| | Typical approach | Mosaic |
+| --- | --- | --- |
+| Memory | Load `MEMORY.md` + `USER.md` in full, every turn | Score against the message, inject top matches under a character budget |
+| Irrelevant question | Still pays for the whole memory file | Pays nothing — no match, no injection |
+| 1000 memories | Cost grows with the store | Same per-turn cost as 10 |
+| Wide exploration | Lands in the main history | Runs in a subagent; only the conclusion returns |
+| Titles, summaries, compaction | Main model | `small_model`, set for you at setup |
+
+Setup pairs a cheap companion model automatically — Haiku alongside Sonnet,
+`gpt-4o-mini` alongside `gpt-4o`. Background work runs constantly and does not
+need the expensive model.
+
 ## Configuration
 
-`~/.mosaic/config.json` is merged over Mosaic's defaults on every start. Arrays
-concatenate and agents merge by name, so adding to it extends Mosaic rather than
-replacing what makes it Mosaic:
+`~/.mosaic/config.json` is merged over Mosaic's defaults on every start, and a
+`.mosaic/config.json` or `mosaic.json` beside your work is layered on top of
+that. Arrays concatenate and agents merge by name, so adding to it extends
+Mosaic rather than replacing what makes it Mosaic:
 
 ```json
 {
@@ -102,6 +155,11 @@ rejected, so a typo costs you the setting with no error.
 Interface settings are separate. The TUI reads its own `tui.json`, and it is the
 only half that loads a plugin's `tui` hooks — a plugin listed in the agent config
 gets its `server` half loaded and its interface half silently ignored.
+
+Mosaic reads only its own filenames. The engine finds project config by walking
+up for `opencode.json` and `.opencode/`, which meant an OpenCode user's
+providers appeared inside Mosaic; that discovery is turned off and replaced with
+`.mosaic/config.json` and `mosaic.json`.
 
 ## Relationship to OpenCode
 
@@ -135,6 +193,8 @@ src/config.ts              config generation + user overrides
 src/agents.ts              agent definitions
 src/plugin/memory/         the memory tool and its recall hook
 src/plugin/branding/       wordmark and example prompts, via TUI slots
+src/heartbeat/             scheduled runs and their store
+src/setup/                 first-launch model picker
 prompts/mosaic.md          base system instructions
 ```
 
