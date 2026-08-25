@@ -66,6 +66,9 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
       join(root, "src", "plugin", "memory", "index.ts"),
       join(root, "src", "plugin", "schedule", "index.ts"),
       join(root, "src", "plugin", "evolve", "index.ts"),
+      join(root, "src", "plugin", "checkpoint", "index.ts"),
+      join(root, "src", "plugin", "hooks", "index.ts"),
+      join(root, "src", "plugin", "keypool", "index.ts"),
     ],
 
     provider: PROVIDER_LABELS,

@@ -67,7 +67,7 @@ jobs:
         run: |
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           ./bin/mosaic debug agent mosaic > "$RUNNER_TEMP/tools.json"
-          for t in memory schedule heartbeat soul skill skill_write; do
+          for t in memory schedule heartbeat soul skill skill_write checkpoint; do
             grep -q "\"$t\": true" "$RUNNER_TEMP/tools.json" || { echo "tool $t missing" >&2; exit 1; }
           done
 

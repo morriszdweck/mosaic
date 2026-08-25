@@ -199,6 +199,58 @@ each is worth using — the bar being whether it will still matter next week.
 
 `customize-mosaic` covers configuring Mosaic itself.
 
+## Checkpoints
+
+The first time the agent writes to a file in a turn, its contents are copied
+aside. `checkpoint restore` puts them back:
+
+```
+checkpoint list      what has been captured in this conversation
+checkpoint restore   put every file in a checkpoint back
+checkpoint create    start a fresh point before a risky batch of edits
+```
+
+Capture is automatic, because an undo you have to remember to arm is not an
+undo. It covers only the files the agent actually touches — snapshotting a whole
+project on every edit is slow enough that people switch it off, and a disabled
+safety net is worse than an honest absence of one.
+
+A file is captured once per checkpoint, on first touch, so the way back is the
+state before the *first* change rather than the most recent one. A file that did
+not exist is restored by deleting it again.
+
+## Event hooks
+
+Drop a `.ts` file in `~/.mosaic/hooks/` and Mosaic calls it. This is the
+guardrail seam — refuse a command, log what ran, notify on completion — without
+writing a plugin:
+
+```ts
+// ~/.mosaic/hooks/no-force-push.ts
+export function beforeTool({ tool, args, deny }) {
+  if (tool === "bash" && String(args.command).includes("push --force")) {
+    deny("force pushes are blocked by a local hook")
+  }
+}
+```
+
+Handlers: `beforeTool` (can `deny`), `afterTool`, `onMessage`. A hook that throws
+is reported and skipped rather than taking the turn down — your logging being
+broken should not stop you working. `deny` is the exception: that is the hook
+doing its job, and it stops the tool.
+
+## Credential pools
+
+Several keys for one provider, used in turn:
+
+```json
+{ "keys": { "anthropic": ["sk-a", "sk-b"], "groq": ["gsk-1", "gsk-2"] } }
+```
+
+Rate limits are per key, so the usual failure is not "no access" but "not right
+now". Rotation is round-robin per request rather than only-on-failure, which
+spreads load instead of hammering one key until it trips.
+
 ## Personality
 
 Drop a `SOUL.md` in `~/.mosaic/` and it is appended to Mosaic's own instructions
@@ -304,6 +356,9 @@ src/plugin/memory/         the memory tool and its recall hook
 src/plugin/branding/       wordmark and example prompts, via TUI slots
 src/plugin/schedule/       the schedule and heartbeat tools
 src/plugin/evolve/         the soul and skill tools
+src/plugin/checkpoint/     file snapshots and rollback
+src/plugin/hooks/          loads ~/.mosaic/hooks/*.ts
+src/plugin/keypool/        rotates several keys for one provider
 skills/                    skills Mosaic ships
 themes/                    mosaic and mosaic-dark
 src/swarm.ts               syncs Swarm's agents into Mosaic's config

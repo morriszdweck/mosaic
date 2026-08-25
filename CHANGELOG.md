@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0
+
+- Checkpoints: file contents are captured before the agent's first write in a
+  turn, and `checkpoint restore` puts them back.
+- Event hooks: `.ts` files in `~/.mosaic/hooks/` run at points in a turn and can
+  refuse a tool call.
+- Credential pools: several keys per provider, rotated round-robin.
+- Both engine footers are now replaced, including the sidebar one still visible
+  inside a session.
+
 ## 0.7.1
 
 - Mosaic theme, used by default in place of the engine's own: deep navy grounds
