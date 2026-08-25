@@ -20,6 +20,8 @@ import { dirname, join, relative, resolve } from "node:path";
 export interface Checkpoint {
   id: number;
   sessionID: string;
+  /** Working directory the capture belongs to. */
+  directory: string;
   label: string;
   createdAt: number;
   files: number;
@@ -44,6 +46,7 @@ export class CheckpointStore {
       CREATE TABLE IF NOT EXISTS checkpoints (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT NOT NULL,
+        directory TEXT NOT NULL DEFAULT '',
         label TEXT NOT NULL,
         created_at INTEGER NOT NULL
       );
@@ -56,10 +59,10 @@ export class CheckpointStore {
     `);
   }
 
-  create(sessionID: string, label: string): Checkpoint {
+  create(sessionID: string, label: string, directory = ""): Checkpoint {
     const row = this.db
-      .prepare("INSERT INTO checkpoints (session_id, label, created_at) VALUES (?, ?, ?) RETURNING *")
-      .get(sessionID, label, Date.now()) as Record<string, unknown>;
+      .prepare("INSERT INTO checkpoints (session_id, directory, label, created_at) VALUES (?, ?, ?, ?) RETURNING *")
+      .get(sessionID, directory, label, Date.now()) as Record<string, unknown>;
     return { ...toCheckpoint(row), files: 0 };
   }
 
@@ -69,6 +72,21 @@ export class CheckpointStore {
       .prepare("SELECT * FROM checkpoints WHERE session_id = ? ORDER BY id DESC LIMIT 1")
       .get(sessionID) as Record<string, unknown> | null;
     return row ? this.withCount(toCheckpoint(row)) : null;
+  }
+
+  /**
+   * Checkpoints for a working directory, newest first.
+   *
+   * Scoped by directory rather than session: `mosaic run` opens a new session
+   * every invocation, so a session-scoped undo cannot reach the edit made a
+   * minute ago. "Undo what was just done to my files" is a question about the
+   * directory, not the conversation.
+   */
+  listForDirectory(directory: string, limit = 20): Checkpoint[] {
+    const rows = this.db
+      .prepare("SELECT * FROM checkpoints WHERE directory = ? ORDER BY id DESC LIMIT ?")
+      .all(directory, limit) as Array<Record<string, unknown>>;
+    return rows.map((r) => this.withCount(toCheckpoint(r)));
   }
 
   /**
@@ -159,6 +177,7 @@ function toCheckpoint(row: Record<string, unknown>): Checkpoint {
   return {
     id: row.id as number,
     sessionID: row.session_id as string,
+    directory: (row.directory as string) ?? "",
     label: row.label as string,
     createdAt: row.created_at as number,
     files: 0,

@@ -187,3 +187,26 @@ describe("credential pools", () => {
     expect(headersFor("something-new", "k")).toEqual({ authorization: "Bearer k" });
   });
 });
+
+describe("checkpoint scope", () => {
+  test("listed by directory, so a new session can still undo", () => {
+    const store = new CheckpointStore(home);
+    // `mosaic run` opens a new session every invocation, so a session-scoped
+    // undo could never reach the edit made a minute earlier.
+    store.create("ses_1", "first run", cwd);
+    store.create("ses_2", "second run", cwd);
+    store.create("ses_3", "elsewhere", "/other/place");
+
+    expect(store.listForDirectory(cwd).map((c) => c.label)).toEqual(["second run", "first run"]);
+    expect(store.listForDirectory("/other/place")).toHaveLength(1);
+    store.close();
+  });
+
+  test("a checkpoint from another directory is not restorable here", () => {
+    const store = new CheckpointStore(home);
+    const other = store.create("ses_1", "x", "/somewhere/else");
+    expect(store.get(other.id)?.directory).toBe("/somewhere/else");
+    expect(store.listForDirectory(cwd)).toHaveLength(0);
+    store.close();
+  });
+});

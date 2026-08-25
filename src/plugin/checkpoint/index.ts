@@ -26,7 +26,7 @@ export const CheckpointPlugin: Plugin = async ({ directory }) => {
   function checkpointFor(sessionID: string, label: string): number {
     const existing = active.get(sessionID);
     if (existing !== undefined) return existing;
-    const created = store.create(sessionID, label);
+    const created = store.create(sessionID, label, directory);
     active.set(sessionID, created.id);
     return created.id;
   }
@@ -40,7 +40,7 @@ export const CheckpointPlugin: Plugin = async ({ directory }) => {
           "A checkpoint is created automatically the first time you write to a",
           "file, capturing what was there before. You do not need to arm it.",
           "",
-          "list: checkpoints in this conversation, newest first",
+          "list: checkpoints for this directory, newest first",
           "restore: put every file in a checkpoint back as it was",
           "create: start a fresh checkpoint before a risky batch of edits, so the",
           "  way back is to one point rather than a mixture",
@@ -56,14 +56,14 @@ export const CheckpointPlugin: Plugin = async ({ directory }) => {
         async execute(args, context) {
           switch (args.action) {
             case "create": {
-              const created = store.create(context.sessionID, args.label?.trim() || "manual");
+              const created = store.create(context.sessionID, args.label?.trim() || "manual", directory);
               active.set(context.sessionID, created.id);
               return `Checkpoint [${created.id}] "${created.label}" started. Files are captured as you change them.`;
             }
 
             case "list": {
-              const all = store.list(context.sessionID);
-              if (!all.length) return "No checkpoints in this conversation yet.";
+              const all = store.listForDirectory(directory);
+              if (!all.length) return "No checkpoints here yet. One is created the first time a file is written.";
               return all
                 .map((c) => {
                   const when = new Date(c.createdAt).toLocaleTimeString();
@@ -75,7 +75,7 @@ export const CheckpointPlugin: Plugin = async ({ directory }) => {
             case "restore": {
               if (args.id === undefined) return "`id` is required. Use list first.";
               const target = store.get(args.id);
-              if (!target || target.sessionID !== context.sessionID) return `No checkpoint [${args.id}] here.`;
+              if (!target || target.directory !== directory) return `No checkpoint [${args.id}] in this directory.`;
               if (target.files === 0) return `Checkpoint [${args.id}] captured no files — nothing to restore.`;
 
               const result = await store.restore(args.id, directory);
@@ -89,7 +89,7 @@ export const CheckpointPlugin: Plugin = async ({ directory }) => {
             case "drop": {
               if (args.id === undefined) return "`id` is required.";
               const target = store.get(args.id);
-              if (!target || target.sessionID !== context.sessionID) return `No checkpoint [${args.id}] here.`;
+              if (!target || target.directory !== directory) return `No checkpoint [${args.id}] in this directory.`;
               await store.remove(args.id);
               if (active.get(context.sessionID) === args.id) active.delete(context.sessionID);
               return `Dropped checkpoint [${args.id}].`;
