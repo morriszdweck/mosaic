@@ -39,3 +39,11 @@ jobs:
         run: |
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           ./bin/mosaic debug agent mosaic | grep -q '"memory": true'
+
+      # Branding lives in the TUI's own config; a plugin listed in the agent
+      # config gets only its server half loaded and is silently never drawn.
+      - name: Branding is registered in the TUI config
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          ./bin/mosaic --version >/dev/null
+          grep -q "branding" "$MOSAIC_HOME/config/opencode/tui.json"

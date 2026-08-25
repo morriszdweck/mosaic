@@ -16,6 +16,8 @@ Mosaic adds:
   relevance and injected under a strict token budget.
 - **Its own state** — config, sessions, and credentials live in `~/.mosaic`, so
   Mosaic and OpenCode can coexist without touching each other.
+- **Its own face** — Mosaic's wordmark and example prompts replace the engine's,
+  through its TUI slot API rather than by forking the interface.
 
 ## Install
 
@@ -97,6 +99,10 @@ It accepts every key the engine accepts — see
 singular (`agent`, `plugin`), and unknown keys are dropped silently rather than
 rejected, so a typo costs you the setting with no error.
 
+Interface settings are separate. The TUI reads its own `tui.json`, and it is the
+only half that loads a plugin's `tui` hooks — a plugin listed in the agent config
+gets its `server` half loaded and its interface half silently ignored.
+
 ## Relationship to OpenCode
 
 Mosaic does not fork or vendor OpenCode. It depends on the published
@@ -128,6 +134,7 @@ bin/mosaic                 launcher: sets up ~/.mosaic, generates config, execs 
 src/config.ts              config generation + user overrides
 src/agents.ts              agent definitions
 src/plugin/memory/         the memory tool and its recall hook
+src/plugin/branding/       wordmark and example prompts, via TUI slots
 prompts/mosaic.md          base system instructions
 ```
 

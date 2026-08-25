@@ -33,6 +33,12 @@ mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 export OPENCODE_CONFIG="${MOSAIC_CONFIG:-$MOSAIC_HOME/mosaic.json}"
 MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" > "$OPENCODE_CONFIG"
 
+# The TUI reads its own config from a fixed path rather than $OPENCODE_CONFIG,
+# and only it will load a plugin's `tui` half.
+tui_dir="$XDG_CONFIG_HOME/opencode"
+mkdir -p "$tui_dir"
+MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" --tui > "$tui_dir/tui.json"
+
 # The engine updates itself through Mosaic's release, not OpenCode's.
 export OPENCODE_DISABLE_AUTOUPDATE=1
 

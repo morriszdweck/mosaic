@@ -55,6 +55,18 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
   };
 }
 
+/**
+ * The TUI is configured separately from the agent, in its own `tui.json` under
+ * $XDG_CONFIG_HOME/opencode. Plugins listed in the main config only get their
+ * `server` half loaded, so Mosaic's branding — which renders into TUI slots —
+ * has to be registered here or it is accepted and silently never drawn.
+ */
+export function buildTuiConfig(root = ROOT): Record<string, unknown> {
+  return {
+    plugin: [join(root, "src", "plugin", "branding", "index.tsx")],
+  };
+}
+
 /** Merge the user's ~/.mosaic/config.json over the generated defaults. */
 async function withUserOverrides(base: MosaicConfig, home: string): Promise<MosaicConfig> {
   const path = join(home, "config.json");
@@ -78,6 +90,10 @@ async function withUserOverrides(base: MosaicConfig, home: string): Promise<Mosa
 }
 
 if (import.meta.main) {
-  const config = await withUserOverrides(buildConfig(), MOSAIC_HOME);
-  process.stdout.write(JSON.stringify(config, null, 2));
+  if (process.argv.includes("--tui")) {
+    process.stdout.write(JSON.stringify(buildTuiConfig(), null, 2));
+  } else {
+    const config = await withUserOverrides(buildConfig(), MOSAIC_HOME);
+    process.stdout.write(JSON.stringify(config, null, 2));
+  }
 }
