@@ -39,6 +39,10 @@ tui_dir="$XDG_CONFIG_HOME/opencode"
 mkdir -p "$tui_dir"
 MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" --tui > "$tui_dir/tui.json"
 
+# Keep Swarm's agents in step with the vendored checkout. Cheap, and it repairs
+# a half-deleted install without a separate command.
+MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/swarm.ts" 2>/dev/null || true
+
 # The engine updates itself through Mosaic's release, not OpenCode's.
 export OPENCODE_DISABLE_AUTOUPDATE=1
 

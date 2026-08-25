@@ -35,6 +35,22 @@ fi
 # which contributors need; the tree is small enough that it is not worth it.
 bun install --cwd "$PREFIX" --silent
 
+# Swarm mode ships as markdown agents in its own repository. Vendored here
+# rather than installed by its own script, which targets ~/.config/opencode —
+# the OpenCode install Mosaic keeps out of. A failure here is not fatal:
+# everything else works without it.
+SWARM_REPO="${MOSAIC_SWARM_REPO:-morriszdweck/opencode-swarm}"
+SWARM_DIR="$PREFIX/vendor/swarm"
+if [ -d "$SWARM_DIR/.git" ]; then
+  git -C "$SWARM_DIR" fetch --depth 1 origin main -q 2>/dev/null && \
+    git -C "$SWARM_DIR" reset --hard origin/main -q 2>/dev/null || \
+    echo "mosaic: could not update swarm; keeping the existing copy" >&2
+else
+  mkdir -p "$(dirname "$SWARM_DIR")"
+  git clone --depth 1 -q "https://github.com/${SWARM_REPO}" "$SWARM_DIR" 2>/dev/null || \
+    echo "mosaic: could not fetch swarm; Swarm mode will be unavailable" >&2
+fi
+
 mkdir -p "$BIN_DIR"
 ln -sf "$PREFIX/bin/mosaic" "$BIN_DIR/mosaic"
 chmod +x "$PREFIX/bin/mosaic"

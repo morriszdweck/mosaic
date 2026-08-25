@@ -68,6 +68,19 @@ jobs:
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           ./bin/mosaic debug agent mosaic | grep -q '"schedule": true'
 
+      # Swarm is fetched by install.sh, so CI vendors it the same way and
+      # checks the orchestrator actually reaches the engine as an agent.
+      - name: Swarm agents install and load
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          git clone --depth 1 -q https://github.com/morriszdweck/opencode-swarm vendor/swarm
+          bun run src/swarm.ts
+          test -f "$MOSAIC_HOME/config/opencode/agent/swarm.md"
+          ./bin/mosaic debug config > "$RUNNER_TEMP/swarm.json"
+          for a in swarm researcher reviewer optimizer uiux-designer; do
+            grep -q "\"$a\"" "$RUNNER_TEMP/swarm.json" || { echo "swarm agent $a missing" >&2; exit 1; }
+          done
+
       # Branding lives in the TUI's own config; a plugin listed in the agent
       # config gets only its server half loaded and is silently never drawn.
       - name: Branding is registered in the TUI config
