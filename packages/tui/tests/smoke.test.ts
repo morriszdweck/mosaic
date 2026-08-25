@@ -24,7 +24,9 @@ test("StatusBar renders model, context %, tokens, cost", async () => {
   await renderOnce();
   const frame = captureCharFrame();
   expect(frame).toContain("openai:gpt-4o-mini");
-  expect(frame).toContain("ctx 10%");
+  expect(frame).toContain("10%");
+  // Context usage also renders as a meter, filled proportionally.
+  expect(frame).toContain("█░░░░░░░");
   expect(frame).toContain("↑1.5k");
   expect(frame).toContain("↓300");
 });

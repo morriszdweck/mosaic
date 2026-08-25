@@ -90,12 +90,29 @@ mosaic -m ollama:llama3.1
 
 ## TUI
 
-- Multiline editor with slash-command autocomplete: `/model` `/login` `/clear` `/compact` `/resume` `/cost` `/memory` `/help`
-- Streaming markdown rendering, syntax-highlighted code, tool-call panels
+- **`@` file references** — fuzzy-pick a file; its contents go to the model, not just the name
+- **`!` shell** — run a command inline; the output joins the conversation
+- **`/` commands** with fuzzy autocomplete, and a **ctrl+p** command palette
+- **Themes** — tokyonight, catppuccin, gruvbox, nord (`/theme`)
+- **Sessions browser** — `/sessions` to search and resume; `/export` to markdown
+- Streaming markdown, syntax-highlighted code, diff-coloured edit panels
 - Permission prompts: **y** allow once · **a** always allow · **n** deny
 - **Esc** interrupts mid-turn; type a redirect and continue from the same context
-- Status bar: model, context usage %, tokens in/out, session cost
-- **Ctrl+C** twice to quit
+- Status bar: model, context meter, tokens in/out, session cost
+
+Keys — **ctrl+x** is the leader:
+
+| Key | |
+| --- | --- |
+| `ctrl+p` | Command palette |
+| `ctrl+x f` | Insert a file reference |
+| `ctrl+x s` | Sessions |
+| `ctrl+x m` / `t` | Model / theme |
+| `ctrl+x k` / `c` | Compact / clear |
+| `ctrl+x g` / `G` | Jump to top / bottom |
+| `enter` | Send (`shift+enter` for a newline) |
+| `esc` | Interrupt, or close an overlay |
+| `ctrl+c` ×2 | Quit |
 
 ## Sessions
 

@@ -278,6 +278,14 @@ export class Agent {
     return resolveProvider(modelString ?? this.model, this.config, this.options.fetchFn);
   }
 
+  /**
+   * Why the active model cannot be used, or undefined if it can. Lets a front
+   * end say "no key for X" at startup instead of at the first failed request.
+   */
+  authWarning(modelString?: string): string | undefined {
+    return this.resolve(modelString).warning;
+  }
+
   private async dispatchTool(
     call: ToolCallPart,
     signal: AbortSignal,
