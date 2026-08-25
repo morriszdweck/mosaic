@@ -85,3 +85,65 @@ describe("mosaic theme", () => {
     }
   });
 });
+
+describe("mosaic-dark", () => {
+  const dark = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic-dark.json"), "utf8")) as {
+    defs: Record<string, string>;
+  };
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+
+  test("is visibly darker than mosaic, not a near-copy", () => {
+    const a = rgb(theme.defs.midnight!).reduce((x, y) => x + y);
+    const b = rgb(dark.defs.midnight!).reduce((x, y) => x + y);
+    // A variant nobody can tell apart is not a variant.
+    expect(b).toBeLessThan(a * 0.75);
+  });
+
+  test("stays blue rather than desaturating to black", () => {
+    // Dropping lightness by pulling every channel down turns navy into grey.
+    for (const key of ["midnight", "deepBlue", "slateBlue", "steel"]) {
+      const [r, g, b] = rgb(dark.defs[key]!);
+      expect(b, `${key} blue vs red`).toBeGreaterThan(r + 10);
+      expect(b, `${key} blue vs green`).toBeGreaterThan(g);
+    }
+  });
+
+  test("its accent is lifted so it still reads against the deeper ground", () => {
+    const lift = (hex: string) => rgb(hex).reduce((x, y) => x + y);
+    expect(lift(dark.defs.sky!)).toBeGreaterThan(lift(theme.defs.sky!));
+  });
+});
+
+describe("tui config", () => {
+  test("a theme the user picked survives the next launch", async () => {
+    const { mergeTuiConfig, buildTuiConfig } = await import("../src/config.ts");
+    // The launcher rewrites tui.json every start so the plugin path stays
+    // current. Writing it wholesale reverted /theme on every relaunch, which
+    // reads as the theme simply not working.
+    const merged = mergeTuiConfig(buildTuiConfig("/opt/mosaic"), { theme: "mosaic-dark" });
+    expect(merged.theme).toBe("mosaic-dark");
+  });
+
+  test("but the plugin path is always refreshed", async () => {
+    const { mergeTuiConfig, buildTuiConfig } = await import("../src/config.ts");
+    // A stale absolute path from an older install location breaks branding.
+    const merged = mergeTuiConfig(buildTuiConfig("/opt/mosaic"), { plugin: ["/old/install/branding.tsx"] });
+    expect(merged.plugin).toEqual(["/opt/mosaic/src/plugin/branding/index.tsx"]);
+  });
+
+  test("other settings the user added are kept", async () => {
+    const { mergeTuiConfig, buildTuiConfig } = await import("../src/config.ts");
+    const merged = mergeTuiConfig(buildTuiConfig("/opt/mosaic"), { keybinds: { leader: "ctrl+a" } });
+    expect(merged.keybinds).toEqual({ leader: "ctrl+a" });
+  });
+
+  test("an unreadable file falls back to defaults instead of wiping settings", async () => {
+    const { readTuiConfig } = await import("../src/config.ts");
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(join(tmpdir(), "mosaic-tui-"));
+    const path = join(dir, "tui.json");
+    writeFileSync(path, "{ broken");
+    expect(await readTuiConfig(path)).toEqual({});
+  });
+});

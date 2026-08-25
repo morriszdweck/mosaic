@@ -37,7 +37,10 @@ MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" > "$OPENCODE_CONFIG"
 # and only it will load a plugin's `tui` half.
 tui_dir="$XDG_CONFIG_HOME/opencode"
 mkdir -p "$tui_dir"
-MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" --tui > "$tui_dir/tui.json"
+# Written via a temporary file: the generator reads the current one to preserve
+# the user's settings, so it cannot be the target of its own redirect.
+MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" --tui "$tui_dir/tui.json" > "$tui_dir/tui.json.new"
+mv "$tui_dir/tui.json.new" "$tui_dir/tui.json"
 
 # Keep Swarm's agents in step with the vendored checkout. Cheap, and it repairs
 # a half-deleted install without a separate command.

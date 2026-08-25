@@ -104,6 +104,14 @@ jobs:
           test -f "$MOSAIC_HOME/config/opencode/themes/mosaic.json"
           test -f "$MOSAIC_HOME/config/opencode/themes/mosaic-dark.json"
           grep -q '"theme": "mosaic"' "$MOSAIC_HOME/config/opencode/tui.json"
+          # A theme the user picks must survive the next launch; the launcher
+          # rewriting tui.json wholesale used to revert it every time.
+          python3 - "$MOSAIC_HOME/config/opencode/tui.json" <<'PY'
+          import json,sys
+          p=sys.argv[1]; c=json.load(open(p)); c["theme"]="mosaic-dark"; json.dump(c,open(p,"w"))
+          PY
+          ./bin/mosaic --version >/dev/null
+          grep -q '"theme": "mosaic-dark"' "$MOSAIC_HOME/config/opencode/tui.json"
           ./bin/mosaic agent list > "$RUNNER_TEMP/agents.txt"
           grep -qE "^builder " "$RUNNER_TEMP/agents.txt"
           grep -qE "^designer " "$RUNNER_TEMP/agents.txt"

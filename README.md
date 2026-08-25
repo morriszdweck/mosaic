@@ -282,7 +282,11 @@ need the expensive model.
 
 Mosaic ships two themes and uses `mosaic` by default in place of the engine's
 own: deep navy grounds with a light-blue accent, in light and dark variants.
-`mosaic-dark` is the same identity on near-black, for low-light terminals.
+`mosaic-dark` goes deeper and bluer for low-light terminals — a darker ground
+with the accent lifted so it still reads against it, rather than the same colours
+dimmed toward grey.
+
+Switch with `/theme`; the choice is kept across launches.
 The other built-in themes are still there — `/theme` to switch, or set `theme`
 in `~/.mosaic/config/opencode/tui.json`.
 

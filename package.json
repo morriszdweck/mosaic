@@ -1,6 +1,6 @@
 {
   "name": "mosaic",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Mosaic — your terminal workspace for research, writing, analysis, code, and coordinated agent work.",
   "license": "MIT",
   "type": "module",

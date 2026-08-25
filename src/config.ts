@@ -123,6 +123,38 @@ export function buildTuiConfig(root = ROOT): Record<string, unknown> {
 }
 
 /**
+ * Merge the generated TUI config over whatever is already on disk.
+ *
+ * The launcher rewrites tui.json on every start so the plugin path tracks the
+ * install. Writing it wholesale threw away the user's own interface settings —
+ * pick `mosaic-dark` with /theme and the next launch silently put `mosaic`
+ * back, which reads as the theme not working at all.
+ *
+ * Generated keys win where they must (the plugin path has to be current);
+ * everything the user set, including `theme`, is preserved.
+ */
+export function mergeTuiConfig(
+  generated: Record<string, unknown>,
+  existing: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...generated, ...existing };
+  // The plugin list is Mosaic's; a stale absolute path would break branding.
+  merged.plugin = generated.plugin;
+  return merged;
+}
+
+/** Read the TUI config already on disk, if any. */
+export async function readTuiConfig(path: string): Promise<Record<string, unknown>> {
+  if (!existsSync(path)) return {};
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+  } catch {
+    // A hand-edited file with a typo should not wipe the user's settings.
+    return {};
+  }
+}
+
+/**
  * Mosaic's own per-project config, replacing the engine's.
  *
  * The engine finds project config by filename, walking up from the working
@@ -197,7 +229,9 @@ async function withUserOverrides(base: MosaicConfig, home: string): Promise<Mosa
 
 if (import.meta.main) {
   if (process.argv.includes("--tui")) {
-    process.stdout.write(JSON.stringify(buildTuiConfig(), null, 2));
+    const path = process.argv[process.argv.indexOf("--tui") + 1];
+    const existing = path ? await readTuiConfig(path) : {};
+    process.stdout.write(JSON.stringify(mergeTuiConfig(buildTuiConfig(), existing), null, 2));
   } else {
     let config = await withUserOverrides(buildConfig(), MOSAIC_HOME);
     // Project config sits closest to the work, so it wins over the global one.
