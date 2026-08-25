@@ -73,4 +73,25 @@ describe("SessionStore", () => {
       store.close();
     }
   });
+
+  test("replaceTranscript keeps a runtime's full history from being appended twice", async () => {
+    const store = await SessionStore.create(join(dir, "replace.db"), join(dir, "replace-transcripts"));
+    try {
+      const s = await store.createSession({ cwd: "/repo", model: "openai:test" });
+      const firstTurn = [
+        { role: "user" as const, content: "hello" },
+        { role: "assistant" as const, content: "hi there" },
+      ];
+
+      await store.replaceTranscript(s.id, firstTurn);
+      await store.replaceTranscript(s.id, [...firstTurn, { role: "user", content: "another question" }]);
+
+      expect(await store.readTranscript(s.id)).toEqual([
+        ...firstTurn,
+        { role: "user", content: "another question" },
+      ]);
+    } finally {
+      store.close();
+    }
+  });
 });

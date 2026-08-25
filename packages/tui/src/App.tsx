@@ -228,7 +228,7 @@ export function App(props: TuiOptions) {
       setRunning(false);
       setContextTokens(estimateContextTokens("", rt.runtime!.agent.messages));
       if (rt.sessions && rt.sessionId) {
-        for (const m of rt.runtime!.agent.messages) await rt.sessions.appendMessage(rt.sessionId, m);
+        await rt.sessions.replaceTranscript(rt.sessionId, rt.runtime!.agent.messages);
         if (entries().filter((e) => e.kind === "user").length === 1) {
           await rt.sessions.setTitle(rt.sessionId, text.slice(0, 60));
         }

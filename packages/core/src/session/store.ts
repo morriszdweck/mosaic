@@ -99,6 +99,22 @@ export class SessionStore {
     this.open().prepare(`UPDATE sessions SET updated_at = ? WHERE id = ?`).run(Date.now(), id);
   }
 
+  /**
+   * Replace a session's transcript with the current in-memory conversation.
+   *
+   * Agent runtimes retain every message, so appending that array at the end of
+   * each turn duplicates the whole history. Replacing also faithfully records
+   * history after context compaction, which can rewrite older messages.
+   */
+  async replaceTranscript(id: string, messages: readonly Message[]): Promise<void> {
+    const now = Date.now();
+    const transcript = messages
+      .map((message) => JSON.stringify({ type: "message", at: now, message }) + "\n")
+      .join("");
+    await writeFile(this.transcriptPath(id), transcript);
+    this.open().prepare(`UPDATE sessions SET updated_at = ? WHERE id = ?`).run(now, id);
+  }
+
   async addUsage(id: string, usage: Usage): Promise<void> {
     this.open()
       .prepare(`UPDATE sessions SET input_tokens = input_tokens + ?, output_tokens = output_tokens + ? WHERE id = ?`)
