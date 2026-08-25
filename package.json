@@ -1,7 +1,7 @@
 {
   "name": "mosaic",
-  "version": "0.6.2",
-  "description": "Mosaic — a general-purpose terminal AI agent, built on OpenCode.",
+  "version": "0.7.0",
+  "description": "Mosaic — your terminal workspace for research, writing, analysis, code, and coordinated agent work.",
   "license": "MIT",
   "type": "module",
   "private": true,
@@ -12,7 +12,7 @@
     "dev": "./bin/mosaic",
     "test": "bun test tests/",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "bunx biome check ."
+    "lint": "bun x biome check ."
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.18.22",

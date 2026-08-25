@@ -102,7 +102,7 @@ const BANNER = `
   ██║ ╚═╝ ██║╚██████╔╝███████║██║  ██║██║╚██████╗
   ╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝ ╚═════╝
 
-  A general-purpose agent for your terminal.
+  Think in pieces. Act as one.
 `;
 
 export async function runSetup(home = MOSAIC_HOME): Promise<SetupResult> {
