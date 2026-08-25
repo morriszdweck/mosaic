@@ -29,6 +29,7 @@ export interface MosaicConfig {
   instructions?: string[];
   plugin?: string[];
   agent?: Record<string, unknown>;
+  provider?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -39,6 +40,10 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
     $schema: "https://opencode.ai/config.json",
     share: "disabled",
     autoupdate: false,
+
+    // A default that works with no key and no account, so a fresh install is
+    // usable even if setup is skipped. ~/.mosaic/config.json overrides it.
+    model: DEFAULT_MODEL,
 
     default_agent: "mosaic",
     agent: AGENTS,
@@ -52,10 +57,31 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
     // Memory is Mosaic's own addition — see src/plugin/memory.
     plugin: [join(root, "src", "plugin", "memory", "index.ts")],
 
+    provider: PROVIDER_LABELS,
+
     // Skills are the engine's own feature and it discovers them itself, under
     // the XDG directories the launcher already points at $MOSAIC_HOME.
   };
 }
+
+/**
+ * Display names for providers and models.
+ *
+ * The engine's free models arrive with their upstream codenames, which say
+ * nothing to someone picking a model. Renaming them is presentation only — the
+ * provider keeps "OC Zen" in its label, because the inference is OpenCode's and
+ * a user choosing a free model should be able to see whose it is.
+ */
+export const DEFAULT_MODEL = "opencode/big-pickle";
+
+const PROVIDER_LABELS: Record<string, unknown> = {
+  opencode: {
+    name: "Free (via OC Zen)",
+    models: {
+      "big-pickle": { name: "Mosaic Free" },
+    },
+  },
+};
 
 /**
  * Personality files, in the order they should be applied.
@@ -92,9 +118,24 @@ export function buildTuiConfig(root = ROOT): Record<string, unknown> {
  * Nearest file wins, and only the first is read: a project config is a
  * statement about one project, not a layer in a stack.
  */
-export async function loadProjectConfig(from: string = process.cwd()): Promise<MosaicConfig | null> {
+export async function loadProjectConfig(
+  from: string = process.cwd(),
+  home = MOSAIC_HOME,
+): Promise<MosaicConfig | null> {
   let dir = resolve(from);
+  // A `.mosaic` that is somebody's *global* config directory is not a project
+  // config. Without this, walking up from any directory under $HOME finds
+  // ~/.mosaic/config.json and applies the global config a second time,
+  // duplicating every array in it. Both the configured home and the
+  // conventional one are excluded, since they can differ.
+  const globalDirs = new Set([resolve(home), resolve(join(homedir(), ".mosaic"))]);
   for (;;) {
+    if (globalDirs.has(join(dir, ".mosaic"))) {
+      const parent = dirname(dir);
+      if (parent === dir) return null;
+      dir = parent;
+      continue;
+    }
     for (const candidate of [join(dir, ".mosaic", "config.json"), join(dir, "mosaic.json")]) {
       if (!existsSync(candidate)) continue;
       try {
@@ -118,6 +159,7 @@ export function mergeConfig(base: MosaicConfig, over: MosaicConfig): MosaicConfi
     instructions: [...(base.instructions ?? []), ...(over.instructions ?? [])],
     plugin: [...(base.plugin ?? []), ...(over.plugin ?? [])],
     agent: { ...(base.agent ?? {}), ...(over.agent ?? {}) },
+    provider: { ...(base.provider ?? {}), ...(over.provider ?? {}) },
   };
 }
 

@@ -127,3 +127,45 @@ describe("merge", () => {
     expect(Object.keys(merged.agent!).sort()).toEqual(["extra", "mosaic"]);
   });
 });
+
+describe("display names", () => {
+  test("the free provider keeps OC Zen visible in its label", () => {
+    const zen = buildConfig("/opt/mosaic", "/home/u/.mosaic").provider!.opencode as { name: string };
+    // Renaming is presentation; whose inference it is should stay legible.
+    expect(zen.name).toBe("Free (via OC Zen)");
+    expect(zen.name).toContain("OC Zen");
+  });
+
+  test("big-pickle is shown as Mosaic Free", () => {
+    const zen = buildConfig("/opt/mosaic", "/home/u/.mosaic").provider!.opencode as {
+      models: Record<string, { name: string }>;
+    };
+    expect(zen.models["big-pickle"]!.name).toBe("Mosaic Free");
+  });
+
+  test("the default model is the one shown as Mosaic Free", async () => {
+    const { DEFAULT_MODEL } = await import("../src/config.ts");
+    expect(buildConfig("/opt/mosaic", "/home/u/.mosaic").model).toBe(DEFAULT_MODEL);
+    expect(DEFAULT_MODEL).toBe("opencode/big-pickle");
+  });
+});
+
+describe("global config is not a project config", () => {
+  test("~/.mosaic is skipped when walking up", async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { loadProjectConfig } = await import("../src/config.ts");
+
+    const home = mkdtempSync(join(tmpdir(), "mosaic-h-"));
+    const mosaicHome = join(home, ".mosaic");
+    mkdirSync(mosaicHome, { recursive: true });
+    // This is the *global* config. Walking up from work under $HOME would
+    // otherwise re-apply it as a project config and duplicate its arrays.
+    writeFileSync(join(mosaicHome, "config.json"), JSON.stringify({ instructions: ["global.md"] }));
+
+    const work = join(home, "projects", "thing");
+    mkdirSync(work, { recursive: true });
+    expect(await loadProjectConfig(work, mosaicHome)).toBeNull();
+  });
+});

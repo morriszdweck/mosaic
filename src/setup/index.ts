@@ -53,8 +53,8 @@ const PROVIDERS = [
   },
 ] as const;
 
-/** A Zen free model that has been reliable enough to hand a new user. */
-const ZEN_FREE_MODEL = "opencode/nemotron-3.5-lightning-free";
+/** The free model Mosaic ships as its default. Shown as "Mosaic Free". */
+const ZEN_FREE_MODEL = "opencode/big-pickle";
 
 export interface SetupResult {
   model?: string;
@@ -138,7 +138,7 @@ export async function runSetup(home = MOSAIC_HOME): Promise<SetupResult> {
       if (ok === "n" || ok === "no") return runSetup(home);
 
       await writeChoice(ZEN_FREE_MODEL, home);
-      process.stderr.write(`\n  ✓ Using ${ZEN_FREE_MODEL}\n`);
+      process.stderr.write("\n  ✓ Using Mosaic Free\n");
       process.stderr.write("    Switch any time with /model, or add your own key with\n");
       process.stderr.write("    `mosaic providers login`.\n\n");
       return { model: ZEN_FREE_MODEL };
