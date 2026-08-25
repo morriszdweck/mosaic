@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Mosaic launcher.
+#
+# Mosaic is a general-purpose agent built on OpenCode's engine. This script is
+# what makes it a separate program rather than a themed OpenCode: OpenCode
+# derives every path it uses from the XDG base directories, so pointing those
+# at ~/.mosaic gives Mosaic its own config, sessions, credentials, and cache. A
+# user can run both, and neither sees the other's state.
+set -euo pipefail
+
+MOSAIC_HOME="${MOSAIC_HOME:-$HOME/.mosaic}"
+
+# Resolve this script's directory through symlinks so the install stays
+# relocatable and a PATH shim still finds the runtime next to it.
+self="${BASH_SOURCE[0]}"
+while [ -L "$self" ]; do
+  link="$(readlink "$self")"
+  case "$link" in
+    /*) self="$link" ;;
+    *) self="$(dirname "$self")/$link" ;;
+  esac
+done
+ROOT="$(cd "$(dirname "$self")/.." && pwd)"
+
+export XDG_DATA_HOME="$MOSAIC_HOME/data"
+export XDG_CONFIG_HOME="$MOSAIC_HOME/config"
+export XDG_CACHE_HOME="$MOSAIC_HOME/cache"
+export XDG_STATE_HOME="$MOSAIC_HOME/state"
+mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
+
+# Mosaic's config is generated rather than shipped, because it has to carry
+# absolute paths to the plugin and prompt files inside this install.
+export OPENCODE_CONFIG="${MOSAIC_CONFIG:-$MOSAIC_HOME/mosaic.json}"
+MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" > "$OPENCODE_CONFIG"
+
+# The engine updates itself through Mosaic's release, not OpenCode's.
+export OPENCODE_DISABLE_AUTOUPDATE=1
+
+engine="$ROOT/node_modules/.bin/opencode"
+if [ ! -x "$engine" ]; then
+  echo "mosaic: engine not installed at $engine" >&2
+  echo "Run: bun install --cwd \"$ROOT\"" >&2
+  exit 1
+fi
+
+MOSAIC_VERSION="$(bun --print "require('$ROOT/package.json').version" 2>/dev/null || echo "unknown")"
+
+case "${1:-}" in
+  --version | -v)
+    # Report Mosaic's version, not the engine's — but name the engine, because
+    # the answer to "what am I running" has to include it.
+    echo "mosaic $MOSAIC_VERSION (opencode $("$engine" --version 2>/dev/null | tail -1))"
+    exit 0
+    ;;
+  upgrade | uninstall)
+    # These would manage an OpenCode install that Mosaic did not create.
+    echo "mosaic: '$1' belongs to the engine and would act on an OpenCode install." >&2
+    echo "Update Mosaic by reinstalling:" >&2
+    echo "  curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh | bash" >&2
+    exit 1
+    ;;
+esac
+
+exec "$engine" "$@"

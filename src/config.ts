@@ -1,0 +1,83 @@
+/**
+ * Emits Mosaic's OpenCode config to stdout. The launcher writes it to
+ * $MOSAIC_HOME/mosaic.json on every start.
+ *
+ * Generated rather than shipped as static JSON because the plugin and prompt
+ * entries have to be absolute paths into whatever directory this install
+ * happens to live in, and because a user's own overrides get merged on top.
+ */
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { AGENTS } from "./agents.ts";
+
+const ROOT = process.env.MOSAIC_ROOT ?? resolve(import.meta.dir, "..");
+const MOSAIC_HOME = process.env.MOSAIC_HOME ?? join(homedir(), ".mosaic");
+
+/**
+ * The engine's config keys are singular — `agent`, `plugin`. Unknown keys are
+ * dropped silently rather than rejected, so a plural typo here costs you the
+ * agents and the memory plugin with no error at all.
+ */
+export interface MosaicConfig {
+  $schema?: string;
+  model?: string;
+  default_agent?: string;
+  autoupdate?: boolean;
+  share?: "manual" | "auto" | "disabled";
+  instructions?: string[];
+  plugin?: string[];
+  agent?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
+  return {
+    // A general-purpose assistant should not be publishing conversations
+    // anywhere by default, and updates come through Mosaic's own release.
+    $schema: "https://opencode.ai/config.json",
+    share: "disabled",
+    autoupdate: false,
+
+    default_agent: "mosaic",
+    agent: AGENTS,
+
+    // The base instructions that make this a general assistant rather than a
+    // coding tool. Agent-level `system` prompts layer on top of these.
+    instructions: [join(root, "prompts", "mosaic.md")],
+
+    // Memory is Mosaic's own addition — see src/plugin/memory.
+    plugin: [join(root, "src", "plugin", "memory", "index.ts")],
+
+    // Skills are the engine's own feature and it discovers them itself, under
+    // the XDG directories the launcher already points at $MOSAIC_HOME.
+  };
+}
+
+/** Merge the user's ~/.mosaic/config.json over the generated defaults. */
+async function withUserOverrides(base: MosaicConfig, home: string): Promise<MosaicConfig> {
+  const path = join(home, "config.json");
+  if (!existsSync(path)) return base;
+  try {
+    const user = JSON.parse(await readFile(path, "utf8")) as MosaicConfig;
+    // Arrays concatenate so a user adding a plugin or skill directory extends
+    // Mosaic rather than silently replacing what makes it Mosaic.
+    return {
+      ...base,
+      ...user,
+      instructions: [...(base.instructions ?? []), ...(user.instructions ?? [])],
+      plugin: [...(base.plugin ?? []), ...(user.plugin ?? [])],
+      agent: { ...(base.agent ?? {}), ...(user.agent ?? {}) },
+    };
+  } catch (error) {
+    // A broken override should not stop Mosaic from starting.
+    process.stderr.write(`mosaic: ignoring ${path}: ${error instanceof Error ? error.message : error}\n`);
+    return base;
+  }
+}
+
+if (import.meta.main) {
+  const config = await withUserOverrides(buildConfig(), MOSAIC_HOME);
+  process.stdout.write(JSON.stringify(config, null, 2));
+}

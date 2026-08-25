@@ -1,23 +1,25 @@
 {
   "name": "mosaic",
-  "version": "0.2.0",
-  "description": "Mosaic — a Hermes-style terminal AI agent, from scratch. TUI-first, token-efficient, frictionless provider onboarding.",
+  "version": "0.3.0",
+  "description": "Mosaic — a general-purpose terminal AI agent, built on OpenCode.",
   "license": "MIT",
   "type": "module",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "bin": {
+    "mosaic": "./bin/mosaic"
+  },
   "scripts": {
-    "dev": "bun run --filter @mosaic/cli dev",
-    "build": "bun run --filter @mosaic/cli build",
-    "compile": "bun run --filter @mosaic/cli compile",
-    "test": "bun test packages/core/tests packages/cli/tests && bun run --filter @mosaic/tui test",
-    "typecheck": "bun run --filter '*' typecheck",
+    "dev": "./bin/mosaic",
+    "test": "bun test tests/",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "bunx biome check ."
   },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.18.22",
+    "opencode-ai": "1.18.22"
+  },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/bun": "^1.1.0",
     "typescript": "^5.5.0"
   },
   "engines": {

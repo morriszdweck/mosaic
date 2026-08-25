@@ -1,13 +1,4 @@
 node_modules/
-# bun.lock is generated per-machine (registry mirror URLs differ); regenerate with `bun install`
 bun.lock
-dist/
 *.log
 .DS_Store
-mosaic
-mosaic-*
-!.github/
-coverage/
-.mosaic/local/
-# bun build --compile scratch files
-*.bun-build

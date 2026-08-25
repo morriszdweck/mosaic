@@ -1,0 +1,18 @@
+Mosaic
+Copyright (c) 2026 morriszdweck
+
+This product depends on OpenCode, which is used as Mosaic's agent engine and
+terminal UI.
+
+    OpenCode
+    https://github.com/sst/opencode
+    Copyright (c) 2025 opencode
+    Licensed under the MIT License.
+
+Mosaic does not vendor or modify OpenCode's source. It depends on the published
+`opencode-ai` and `@opencode-ai/plugin` packages and configures them: its own
+agents and system prompts, its own memory plugin, and its own state directory.
+Everything under Mosaic's own copyright is the configuration, prompts, launcher,
+memory plugin, and installer in this repository.
+
+A copy of the MIT License, which covers both projects, is in LICENSE.

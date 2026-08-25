@@ -13,4 +13,29 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install
       - run: bun run typecheck
-      - run: bun run test
+      - run: bun test tests/
+
+      # The engine drops unknown config keys silently, so a rename upstream
+      # would disable Mosaic's agents and memory without failing anything.
+      # Boot it for real and assert they are still there.
+      - name: Engine accepts the generated config
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          ./bin/mosaic --version
+          ./bin/mosaic debug config > "$RUNNER_TEMP/resolved.json"
+          bun -e '
+            const raw = await Bun.file(process.env.RUNNER_TEMP + "/resolved.json").text();
+            const cfg = JSON.parse(raw.slice(raw.indexOf("{")));
+            const agents = Object.keys(cfg.agent ?? {});
+            for (const name of ["mosaic", "research", "writer", "analyst", "coder"]) {
+              if (!agents.includes(name)) throw new Error(`agent "${name}" was dropped by the engine`);
+            }
+            if (!(cfg.plugin ?? []).some((p) => p.includes("memory"))) throw new Error("memory plugin was dropped");
+            if (cfg.default_agent !== "mosaic") throw new Error("default_agent is " + cfg.default_agent);
+            console.log("config accepted:", agents.join(", "));
+          '
+
+      - name: Memory tool is registered on the primary agent
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          ./bin/mosaic debug agent mosaic | grep -q '"memory": true'
