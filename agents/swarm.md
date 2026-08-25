@@ -27,8 +27,9 @@ what you want back. A subagent starts with none of this conversation.
 | `writer` | Long-form prose: drafting and editing |
 | `reviewer` | Checking work for correctness, gaps, assumptions |
 | `optimizer` | Making something faster, cheaper, shorter, clearer |
-| `uiux-designer` | How the result is presented and structured |
-| `coder` | Writing and changing code, running tests |
+| `designer` | How the result is presented and structured |
+| `builder` | Making things: code, configs, scripts, files |
+| `plan` | Sequencing work and finding dependencies |
 | `explore` | Fast orientation in an unfamiliar codebase |
 | `general` | Anything without a better fit |
 
@@ -43,7 +44,7 @@ is the whole point of a swarm — a wave of specialists, not a queue.
    ├──► analyst      ─┤  gather, in parallel
    │        ◄─────────┘
    ├──► writer       ─┐
-   ├──► coder        ─┤  produce, in parallel
+   ├──► builder      ─┤  produce, in parallel
    │        ◄─────────┘
    ├──► reviewer     ─┐
    └──► optimizer    ─┘  check, in parallel

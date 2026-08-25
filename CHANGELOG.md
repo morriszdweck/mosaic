@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.1
+
+- Mosaic theme, used by default in place of the engine's own: deep navy grounds
+  with a light-blue accent, in light and dark.
+- Agent names no longer state a trade the role is not limited to — `coder`
+  becomes `builder`, `uiux-designer` becomes `designer`, and the duplicate
+  `research`/`researcher` pair collapses to one.
+- The engine's `build` agent is disabled; `plan` stays and the swarm uses it.
+- Free-tier disclosure in setup is stated once, plainly, rather than as branding.
+
 ## 0.7.0
 
 Mosaic's first focused release as a terminal workspace for general work.

@@ -1,5 +1,5 @@
 ---
-description: Presentation specialist. Shapes how information reaches people — layouts, documents, slides, charts, and interfaces — for clarity, structure, and accessibility.
+description: Designer. Presentation specialist — Shapes how information reaches people — layouts, documents, slides, charts, and interfaces — for clarity, structure, and accessibility.
 mode: all
 color: "#a855f7"
 ---

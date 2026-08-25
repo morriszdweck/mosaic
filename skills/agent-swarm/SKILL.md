@@ -1,6 +1,6 @@
 ---
 name: agent-swarm
-description: Agent Swarm — parallel multi-agent orchestration. Use when a task has several independent parts and would go faster delegated across specialists (researcher, analyst, writer, reviewer, optimizer, uiux-designer, coder) than done step by step.
+description: Agent Swarm — parallel multi-agent orchestration. Use when a task has several independent parts and would go faster delegated across specialists (researcher, analyst, writer, reviewer, optimizer, designer, builder) than done step by step.
 ---
 
 # Agent Swarm
@@ -43,8 +43,9 @@ Match the number of agents to the number of real units.
 | `writer` | Long-form prose: drafting and editing |
 | `reviewer` | Correctness, gaps, unstated assumptions |
 | `optimizer` | Smaller, faster, cheaper, clearer |
-| `uiux-designer` | How the result is presented and structured |
-| `coder` | Writing and changing code, running tests |
+| `designer` | How the result is presented and structured |
+| `builder` | Making things: code, configs, scripts, files |
+| `plan` | Sequencing work and finding dependencies |
 | `explore` | Fast orientation in an unfamiliar codebase |
 | `general` | Anything without a better fit |
 

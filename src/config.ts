@@ -112,6 +112,8 @@ function soulFiles(home: string): string[] {
  */
 export function buildTuiConfig(root = ROOT): Record<string, unknown> {
   return {
+    // Installed from themes/mosaic.json; the engine's own default is "opencode".
+    theme: "mosaic",
     plugin: [join(root, "src", "plugin", "branding", "index.tsx")],
   };
 }

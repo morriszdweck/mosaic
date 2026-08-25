@@ -32,6 +32,8 @@ Mosaic adds:
 - **Personality** — a `SOUL.md` that shapes tone and standing preferences.
 - **A point of view** — Mosaic starts from questions, plans, evidence, and
   drafts; code is there when it is the right tool.
+- **Its own face** — a blue Mosaic theme, wordmark, and example prompts replace
+  the engine's, through its TUI slot API rather than by forking the interface.
 
 ## Install
 
@@ -71,10 +73,19 @@ lists what is available.
 | Agent | Role |
 | --- | --- |
 | `mosaic` | Primary. General assistant across research, writing, analysis, code, and system tasks. |
-| `research` | Gathers from files, web, and commands. Returns findings with citations, not transcripts. |
+| `researcher` | Gathers from files, web, and commands. Returns findings with citations, not transcripts. |
 | `writer` | Drafts and edits long-form prose in the author's voice. |
 | `analyst` | Works with data: inspects it before describing it, states its assumptions. |
-| `coder` | Writes and changes code, runs tests, debugs. |
+| `builder` | Makes things: code, configs, scripts, files. Runs what it builds. |
+| `reviewer` | Checks work for correctness, gaps, and unstated assumptions. |
+| `optimizer` | Makes something smaller, faster, cheaper, or clearer. |
+| `designer` | How a result is presented and structured. |
+| `swarm` | Orchestrator — see below. |
+
+Names avoid stating a trade the role is not limited to: `builder` rather than
+`coder`, `designer` rather than `uiux-designer`. The engine's own `build` agent
+is disabled — it is a coding primary that competes with `mosaic` for the default
+slot. `plan` stays, since sequencing is general and the swarm delegates to it.
 
 Subagents are a token-efficiency mechanism as much as a behavioural one: each
 explores in its own context and returns only its conclusion, so a wide search
@@ -125,7 +136,8 @@ fires the independent ones together, and synthesises the results. Specialists:
 | `researcher` | Finding things out: sources, options, prior art. |
 | `reviewer` | Checks work for correctness, gaps, and unstated assumptions. |
 | `optimizer` | Makes something smaller, faster, cheaper, or clearer. |
-| `uiux-designer` | How the result is presented and structured. |
+| `designer` | How the result is presented and structured. |
+| `plan` | Sequencing work and finding dependencies. |
 
 Mosaic's specialists are general by design: the reviewer checks an argument as
 readily as a diff, and the optimizer tightens a process as readily as a hot
@@ -196,6 +208,16 @@ Setup pairs a cheap companion model automatically — Haiku alongside Sonnet,
 `gpt-4o-mini` alongside `gpt-4o`. Background work runs constantly and does not
 need the expensive model.
 
+## Theme
+
+Mosaic ships a `mosaic` theme and uses it by default in place of the engine's
+own: deep navy grounds with a light-blue accent, and light and dark variants.
+The other built-in themes are still there — `/theme` to switch, or set `theme`
+in `~/.mosaic/config/opencode/tui.json`.
+
+Add your own as `themes/<name>.json` in that directory; the filename is the
+theme name.
+
 ## Configuration
 
 `~/.mosaic/config.json` is merged over Mosaic's defaults on every start, and a
@@ -264,6 +286,7 @@ src/plugin/branding/       wordmark and example prompts, via TUI slots
 src/plugin/schedule/       the schedule tool and its timer
 src/swarm.ts               syncs Swarm's agents into Mosaic's config
 agents/                    Mosaic's general-purpose Agent Swarm definitions
+themes/mosaic.json         the Mosaic theme
 skills/agent-swarm/        the Agent Swarm skill
 vendor/swarm/              opencode-swarm checkout (fetched by install.sh)
 src/setup/                 first-launch model picker

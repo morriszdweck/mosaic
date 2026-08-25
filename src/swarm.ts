@@ -47,6 +47,7 @@ export function defaultPaths(root: string, home = MOSAIC_HOME): SwarmPaths {
 interface Manifest {
   agents: string[];
   skills: string[];
+  themes: string[];
 }
 
 const MANIFEST = "swarm-manifest.json";
@@ -60,11 +61,20 @@ const MANIFEST = "swarm-manifest.json";
  */
 const SUPERSEDED_SKILLS = new Set(["opencode-swarm"]);
 
+/**
+ * Vendored agents Mosaic replaces under a different name.
+ *
+ * Renaming an override is not enough on its own: the vendored file keeps its
+ * old name and would install alongside the replacement, leaving two agents for
+ * one role.
+ */
+const SUPERSEDED_AGENTS = new Set(["uiux-designer.md", "coder.md"]);
+
 async function readManifest(configDir: string): Promise<Manifest> {
   try {
     return JSON.parse(await readFile(join(configDir, MANIFEST), "utf8")) as Manifest;
   } catch {
-    return { agents: [], skills: [] };
+    return { agents: [], skills: [], themes: [] };
   }
 }
 
@@ -95,7 +105,7 @@ export async function syncSwarm(paths: SwarmPaths): Promise<SyncResult> {
   await mkdir(agentDir, { recursive: true });
   await mkdir(skillDir, { recursive: true });
 
-  const manifest: Manifest = { agents: [], skills: [] };
+  const manifest: Manifest = { agents: [], skills: [], themes: [] };
 
   // Mosaic's own definitions win, so an override replaces the vendored file of
   // the same name rather than both being copied.
@@ -105,7 +115,9 @@ export async function syncSwarm(paths: SwarmPaths): Promise<SyncResult> {
     [overrideSrc, existsSync(overrideSrc)],
   ] as Array<[string, boolean]>) {
     if (!enabled) continue;
+    const vendored = dir.includes(`${sep}vendor${sep}`);
     for (const file of (await readdir(dir)).filter((f) => f.endsWith(".md"))) {
+      if (vendored && SUPERSEDED_AGENTS.has(file)) continue;
       sources.set(file, join(dir, file));
     }
   }
@@ -142,6 +154,24 @@ export async function syncSwarm(paths: SwarmPaths): Promise<SyncResult> {
     result.installed.push(name);
   }
 
+  // Mosaic's theme is a plain JSON file the engine picks up by scanning
+  // themes/*.json; the name is the filename.
+  const themeSrc = join(paths.overrides, "..", "themes");
+  if (existsSync(themeSrc)) {
+    const themeDir = join(paths.configDir, "themes");
+    await mkdir(themeDir, { recursive: true });
+    for (const file of (await readdir(themeSrc)).filter((f) => f.endsWith(".json"))) {
+      const dest = join(themeDir, file);
+      if (existsSync(dest) && !previous.themes.includes(file)) {
+        result.skipped.push(file);
+        continue;
+      }
+      await cp(join(themeSrc, file), dest);
+      manifest.themes.push(file);
+      result.installed.push(file);
+    }
+  }
+
   // Drop anything we installed previously that swarm no longer ships, so a
   // renamed agent does not linger forever.
   for (const file of previous.agents) {
@@ -153,6 +183,11 @@ export async function syncSwarm(paths: SwarmPaths): Promise<SyncResult> {
     if (manifest.skills.includes(name)) continue;
     await rm(join(skillDir, name), { recursive: true, force: true });
     result.removed.push(name);
+  }
+  for (const file of previous.themes ?? []) {
+    if (manifest.themes.includes(file)) continue;
+    await rm(join(paths.configDir, "themes", file), { force: true });
+    result.removed.push(file);
   }
 
   await writeFile(join(paths.configDir, MANIFEST), JSON.stringify(manifest, null, 2) + "\n");

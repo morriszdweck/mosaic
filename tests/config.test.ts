@@ -53,13 +53,26 @@ describe("agents", () => {
   });
 
   test("ships the general-purpose subagents", () => {
-    expect(Object.keys(AGENTS).sort()).toEqual(["analyst", "coder", "mosaic", "research", "writer"]);
+    expect(Object.keys(AGENTS).sort()).toEqual(["analyst", "build", "builder", "mosaic", "writer"]);
   });
 
-  test("every agent has a description and a system prompt", () => {
+  // `build` is a coding primary that competes with `mosaic` for the default
+  // slot and frames the tool as a code editor.
+  test("the engine's build agent is disabled", () => {
+    expect(AGENTS.build!.disable).toBe(true);
+  });
+
+  test("no agent name states a trade the role is not limited to", () => {
+    // `coder`/`uiux-designer` read as a coding tool; `builder`/`designer` do not.
+    for (const name of Object.keys(AGENTS)) {
+      expect(["coder", "uiux-designer", "research"]).not.toContain(name);
+    }
+  });
+
+  test("every enabled agent has a description and a system prompt", () => {
     for (const [name, agent] of Object.entries(AGENTS)) {
       expect(agent.description, name).toBeTruthy();
-      expect(agent.system, name).toBeTruthy();
+      if (!agent.disable) expect(agent.system, name).toBeTruthy();
     }
   });
 

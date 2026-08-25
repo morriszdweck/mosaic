@@ -129,8 +129,10 @@ export async function runSetup(home = MOSAIC_HOME): Promise<SetupResult> {
       // Free models are a real on-ramp, but they are someone else's compute and
       // several of them train on what you send. Saying so here is the only
       // honest place — after this the model is just a name in a status bar.
-      process.stderr.write("\n  Free models are provided by OpenCode Zen, and Mosaic is built on\n");
-      process.stderr.write("  OpenCode's engine. Two things worth knowing:\n\n");
+      // Attribution stays: this is someone else's compute, and the training
+      // caveat below is not disclosure the user can be denied. It is stated
+      // once, plainly, rather than turned into branding.
+      process.stderr.write("\n  Free models are served by OC Zen. Two things worth knowing:\n\n");
       process.stderr.write("    · Some free models train on your prompts and completions.\n");
       process.stderr.write("      Don't send anything confidential.\n");
       process.stderr.write("    · Availability varies — they are free, not guaranteed.\n\n");

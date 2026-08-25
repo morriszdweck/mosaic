@@ -14,12 +14,21 @@
 export interface AgentDefinition {
   description: string;
   mode: "primary" | "subagent" | "all";
+  disable?: boolean;
   system?: string;
   color?: string;
   [key: string]: unknown;
 }
 
 export const AGENTS: Record<string, AgentDefinition> = {
+  /**
+   * The engine's `build` agent is a coding primary that competes with `mosaic`
+   * for the default slot and frames the tool as a code editor. Mosaic's own
+   * `builder` covers the same work as a subagent. `plan` stays: sequencing is
+   * general, and Agent Swarm delegates to it.
+   */
+  build: { description: "Disabled in Mosaic — use `builder`.", mode: "subagent", disable: true },
+
   mosaic: {
     description: "General-purpose assistant: research, writing, analysis, code, and system tasks.",
     mode: "primary",
@@ -35,25 +44,10 @@ export const AGENTS: Record<string, AgentDefinition> = {
       "of speculating: read the file, run the command, fetch the page. Say what you",
       "actually verified and what you did not.",
       "",
-      "Delegate wide exploration to a subagent so its intermediate output stays out",
-      "of this conversation. Use `research` for gathering, `writer` for long prose,",
-      "`analyst` for data, `coder` for implementation.",
-    ].join("\n"),
-  },
-
-  research: {
-    description: "Gathers information from files, the web, and commands. Returns findings, not transcripts.",
-    mode: "subagent",
-    color: "info",
-    system: [
-      "You gather information and report what you found.",
-      "",
-      "Search widely, read selectively, and return conclusions with citations —",
-      "file paths with line numbers, URLs, command output. Your caller sees only",
-      "your final message, so it has to stand alone: no 'as mentioned above'.",
-      "",
-      "Distinguish what you verified from what you inferred. If the evidence is",
-      "thin or contradictory, say so rather than smoothing it over.",
+      "Delegate wide exploration to a subagent so its intermediate output stays",
+      "out of this conversation. Use `researcher` for gathering, `writer` for long",
+      "prose, `analyst` for data, `builder` for making things, `reviewer` to check",
+      "work, and `swarm` when a task splits into parts that can run at once.",
     ].join("\n"),
   },
 
@@ -89,16 +83,18 @@ export const AGENTS: Record<string, AgentDefinition> = {
     ].join("\n"),
   },
 
-  coder: {
-    description: "Writes and modifies code, runs tests, and debugs.",
+  builder: {
+    description: "Makes the thing: code, configs, scripts, and files. Runs what it builds and reports failures.",
     mode: "subagent",
     color: "success",
     system: [
-      "You write and change code.",
+      "You build and change things — code most often, but also configs,",
+      "scripts, data files, and documents.",
       "",
-      "Read the surrounding code before editing so your change matches its idiom,",
-      "naming, and error handling. Run the tests when they exist; if something",
-      "fails, report the failure rather than describing the change as done.",
+      "Read what is already there before editing, so your change matches its",
+      "conventions rather than importing your own. Run what you build when it",
+      "can be run; if something fails, report the failure rather than",
+      "describing the work as done.",
     ].join("\n"),
   },
 };
