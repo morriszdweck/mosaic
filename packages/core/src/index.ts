@@ -4,15 +4,15 @@
  */
 
 export * from "./types.ts";
-export { loadConfig, resolveApiKey, DEFAULT_CONFIG } from "./config.ts";
+export { loadConfig, resolveApiKey, keyEnvFor, DEFAULT_CONFIG } from "./config.ts";
 export type { MosaicConfig } from "./config.ts";
 export { AuthStore } from "./auth/store.ts";
-export type { Credential, OAuthCredential, ApiKeyCredential } from "./auth/store.ts";
-export { requestDeviceCode, pollForToken, refreshToken, isExpired, DEFAULT_CODEX_OAUTH } from "./auth/codex.ts";
+export type { Credential, ApiKeyCredential } from "./auth/store.ts";
 export { OpenAICompatibleProvider, parseSSE } from "./providers/openai.ts";
 export { AnthropicProvider } from "./providers/anthropic.ts";
-export { CodexProvider, OpenCodeProvider } from "./providers/codex.ts";
 export { resolveProvider, parseModelRef } from "./providers/registry.ts";
+export { PROVIDER_PRESETS, conventionalKeyEnv } from "./providers/presets.ts";
+export type { ProviderPreset } from "./providers/presets.ts";
 export { ToolRegistry } from "./tools/registry.ts";
 export type { Tool, ToolContext } from "./tools/registry.ts";
 export { truncateMiddle, windowLines } from "./tools/truncate.ts";

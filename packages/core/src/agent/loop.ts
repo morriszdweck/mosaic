@@ -4,7 +4,6 @@ import { loadProjectMemory } from "../memory/project.ts";
 import { listSkills } from "../memory/skills.ts";
 import { PermissionGate, type PermissionPrompt } from "../permissions.ts";
 import { resolveProvider } from "../providers/registry.ts";
-import type { AuthStore } from "../auth/store.ts";
 import type { Message, ToolCallPart, Usage } from "../types.ts";
 import { textOf } from "../types.ts";
 import type { ToolRegistry, ToolContext } from "../tools/registry.ts";
@@ -35,7 +34,6 @@ export type AgentEvent =
 
 export interface AgentOptions {
   config: MosaicConfig;
-  authStore: AuthStore;
   registry: ToolRegistry;
   permissionGate: PermissionGate;
   memory: MemoryStore | null;
@@ -277,7 +275,7 @@ export class Agent {
   }
 
   private resolve(modelString?: string) {
-    return resolveProvider(modelString ?? this.model, this.config, this.options.authStore, this.options.fetchFn);
+    return resolveProvider(modelString ?? this.model, this.config, this.options.fetchFn);
   }
 
   private async dispatchTool(

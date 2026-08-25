@@ -4,24 +4,15 @@ import { authPath } from "../util/paths.ts";
 
 /**
  * Credential store. Lives at ~/.mosaic/auth.json with 0600 permissions.
- * Holds OAuth tokens (Codex) and pasted API keys (OpenCode Go/Zen, or any provider).
+ * Holds API keys saved by `mosaic login <provider> --key`.
  */
-
-export interface OAuthCredential {
-  kind: "oauth";
-  accessToken: string;
-  refreshToken?: string;
-  /** Epoch millis when the access token expires. */
-  expiresAt?: number;
-  accountId?: string;
-}
 
 export interface ApiKeyCredential {
   kind: "apikey";
   key: string;
 }
 
-export type Credential = OAuthCredential | ApiKeyCredential;
+export type Credential = ApiKeyCredential;
 
 export interface AuthStoreData {
   version: 1;
@@ -68,6 +59,16 @@ export class AuthStore {
   async list(): Promise<string[]> {
     await this.load();
     return Object.keys(this.data.credentials).sort();
+  }
+
+  /** Saved API keys by provider, for synchronous provider resolution. */
+  async apiKeys(): Promise<Record<string, string>> {
+    await this.load();
+    const out: Record<string, string> = {};
+    for (const [provider, credential] of Object.entries(this.data.credentials)) {
+      if (credential.kind === "apikey") out[provider] = credential.key;
+    }
+    return out;
   }
 
   private async save(): Promise<void> {

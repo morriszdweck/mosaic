@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs, HELP } from "./args.ts";
-import { loginCommand, logoutCommand, authStatusCommand } from "./commands/auth.ts";
+import { loginCommand, logoutCommand, authStatusCommand, providersCommand } from "./commands/auth.ts";
 import { sessionsCommand } from "./commands/sessions.ts";
 import { headless } from "./headless.ts";
 import { restoreLaunchCwd } from "./launch.ts";
@@ -36,6 +36,8 @@ async function main(): Promise<number> {
       if (args.positional[0] === "status") return authStatusCommand();
       console.error("Usage: mosaic auth status");
       return 1;
+    case "providers":
+      return providersCommand();
     case "sessions":
       return sessionsCommand();
     case "print": // alias for -p

@@ -1,9 +1,8 @@
-import { resolveApiKey, type MosaicConfig } from "../config.ts";
-import type { AuthStore } from "../auth/store.ts";
+import { keyEnvFor, resolveApiKey, type MosaicConfig } from "../config.ts";
 import type { ModelRef, Provider } from "../types.ts";
 import { AnthropicProvider } from "./anthropic.ts";
-import { CodexProvider, OpenCodeProvider } from "./codex.ts";
 import { OpenAICompatibleProvider } from "./openai.ts";
+import { PROVIDER_PRESETS } from "./presets.ts";
 
 /**
  * Provider registry. Model strings look like "provider:model"
@@ -14,7 +13,12 @@ import { OpenAICompatibleProvider } from "./openai.ts";
 const PREFIX_HINTS: Array<[RegExp, string]> = [
   [/^claude/i, "anthropic"],
   [/^gpt|^o[134]/i, "openai"],
-  [/^llama|^qwen|^mistral|^phi/i, "ollama"],
+  [/^grok/i, "xai"],
+  [/^deepseek/i, "deepseek"],
+  // mistral/llama/qwen/phi stay on the local runtime: these names are the
+  // open-weight families you actually run under Ollama. Use "mistral:<model>"
+  // explicitly for the hosted API.
+  [/^llama|^qwen|^mistral|^phi|^gemma/i, "ollama"],
 ];
 
 export function parseModelRef(model: string): ModelRef {
@@ -29,53 +33,65 @@ export function parseModelRef(model: string): ModelRef {
 export interface ProviderResolution {
   provider: Provider;
   ref: ModelRef;
-  /** Human-readable auth hint when credentials are missing. */
+  /** Human-readable auth hint when credentials are missing or misconfigured. */
   warning?: string;
+}
+
+/** "No API key for X. Set VAR, or run `mosaic login X`. Get one at: url" */
+function missingKeyWarning(cfg: MosaicConfig, provider: string): string {
+  const label = PROVIDER_PRESETS[provider]?.label ?? provider;
+  const keyUrl = PROVIDER_PRESETS[provider]?.keyUrl;
+  return (
+    `No API key for ${label}. Set ${keyEnvFor(cfg, provider)} or run \`mosaic login ${provider} --key <key>\`.` +
+    (keyUrl ? ` Get one at ${keyUrl}` : "")
+  );
 }
 
 export function resolveProvider(
   modelString: string,
   config: MosaicConfig,
-  store: AuthStore,
   fetchFn?: typeof fetch,
 ): ProviderResolution {
   const ref = parseModelRef(modelString);
   const pcfg = config.providers[ref.provider];
+  const preset = PROVIDER_PRESETS[ref.provider];
+  const apiKey = resolveApiKey(config, ref.provider);
 
-  switch (ref.provider) {
-    case "anthropic": {
-      const apiKey = resolveApiKey(config, "anthropic");
-      if (!apiKey) {
-        return {
-          provider: new AnthropicProvider({ apiKey: "", baseUrl: pcfg?.baseUrl, fetchFn }),
-          ref,
-          warning: "No Anthropic API key. Set ANTHROPIC_API_KEY or run `mosaic login anthropic`.",
-        };
-      }
-      return { provider: new AnthropicProvider({ apiKey, baseUrl: pcfg?.baseUrl, fetchFn }), ref };
-    }
-    case "codex":
-      return { provider: new CodexProvider({ store, baseUrl: pcfg?.baseUrl, fetchFn }), ref };
-    case "opencode":
-      return { provider: new OpenCodeProvider({ store, baseUrl: pcfg?.baseUrl, fetchFn }), ref };
-    default: {
-      // Any OpenAI-compatible endpoint: openai, openrouter, groq, ollama, lmstudio, custom.
-      const apiKey = resolveApiKey(config, ref.provider);
-      const baseUrl = pcfg?.baseUrl ?? "https://api.openai.com/v1";
-      const headers: Record<string, string> = {};
-      if (ref.provider === "openrouter") {
-        headers["HTTP-Referer"] = "https://github.com/morriszdweck/mosaic";
-        headers["X-Title"] = "Mosaic";
-      }
-      const needsKey = !["ollama", "lmstudio"].includes(ref.provider);
-      return {
-        provider: new OpenAICompatibleProvider({ name: ref.provider, baseUrl, apiKey, headers, fetchFn }),
-        ref,
-        warning:
-          needsKey && !apiKey
-            ? `No API key for ${ref.provider}. Set ${pcfg?.apiKeyEnv ?? `${ref.provider.toUpperCase()}_API_KEY`} or run \`mosaic login ${ref.provider}\`.`
-            : undefined,
-      };
-    }
+  if (preset?.native === "anthropic") {
+    const baseUrl = pcfg?.baseUrl ?? preset.baseUrl;
+    return {
+      provider: new AnthropicProvider({ apiKey: apiKey ?? "", baseUrl, fetchFn }),
+      ref,
+      warning: apiKey ? undefined : missingKeyWarning(config, ref.provider),
+    };
   }
+
+  // Everything else speaks OpenAI chat-completions.
+  const baseUrl = pcfg?.baseUrl ?? preset?.baseUrl;
+  if (!baseUrl) {
+    // Previously this silently fell back to api.openai.com, so a typo'd or
+    // unknown provider sent your prompt (and your OpenAI key) to OpenAI under a
+    // model name it does not have. Refuse instead and say how to register it.
+    return {
+      provider: new OpenAICompatibleProvider({ name: ref.provider, baseUrl: "", apiKey, fetchFn }),
+      ref,
+      warning:
+        `Unknown provider "${ref.provider}". Add it to config.toml:\n` +
+        `  [providers.${ref.provider}]\n  base_url = "https://…/v1"\n` +
+        `Known: ${Object.keys(PROVIDER_PRESETS).join(", ")}`,
+    };
+  }
+
+  const headers: Record<string, string> = {};
+  if (ref.provider === "openrouter") {
+    headers["HTTP-Referer"] = "https://github.com/morriszdweck/mosaic";
+    headers["X-Title"] = "Mosaic";
+  }
+
+  const needsKey = !preset?.keyless;
+  return {
+    provider: new OpenAICompatibleProvider({ name: ref.provider, baseUrl, apiKey, headers, fetchFn }),
+    ref,
+    warning: needsKey && !apiKey ? missingKeyWarning(config, ref.provider) : undefined,
+  };
 }

@@ -5,8 +5,8 @@ import {
   compactDeterministic,
   createAgentRuntime,
   estimateContextTokens,
-  pollForToken,
-  requestDeviceCode,
+  PROVIDER_PRESETS,
+  keyEnvFor,
   SessionStore,
   type AgentRuntime,
   type PermissionDecision,
@@ -340,7 +340,7 @@ export function App(props: TuiOptions) {
         break;
       }
       case "login": {
-        await loginFlow(arg || "codex");
+        await loginFlow(arg);
         break;
       }
       default:
@@ -348,29 +348,32 @@ export function App(props: TuiOptions) {
     }
   }
 
+  /**
+   * Keys are secrets and this transcript is written to disk, so the TUI never
+   * takes one as typed input — it points at the CLI, which stores it 0600.
+   */
   async function loginFlow(provider: string) {
-    if (provider === "codex") {
-      push({ kind: "system", text: "Starting ChatGPT device sign-in…" });
-      try {
-        const device = await requestDeviceCode();
-        push({
-          kind: "system",
-          text: `Open ${device.verificationUriComplete ?? device.verificationUri}` +
-            (device.verificationUriComplete ? "" : ` and enter code ${device.userCode}`) +
-            "\nWaiting for approval…",
-        });
-        const credential = await pollForToken(device.deviceCode);
-        await rt.runtime?.authStore.set("codex", credential);
-        push({ kind: "system", text: "✓ Signed in with ChatGPT (codex)." });
-      } catch (error) {
-        push({ kind: "error", text: `Login failed: ${error instanceof Error ? error.message : String(error)}` });
-      }
-    } else {
-      push({
-        kind: "system",
-        text: `To sign in ${provider}, run: mosaic login ${provider} --key <your-key>`,
-      });
+    if (!provider) {
+      const names = Object.entries(PROVIDER_PRESETS)
+        .map(([n, p]) => `  ${n.padEnd(12)} ${p.label}${p.keyless ? " — no key needed" : ""}`)
+        .join("\n");
+      push({ kind: "system", text: `Usage: /login <provider>\n\n${names}` });
+      return;
     }
+    const preset = PROVIDER_PRESETS[provider];
+    if (preset?.keyless) {
+      push({ kind: "system", text: `${preset.label} runs locally — no key needed. Try /model ${provider}:${preset.exampleModel}` });
+      return;
+    }
+    const env = rt.runtime ? keyEnvFor(rt.runtime.config, provider) : `${provider.toUpperCase()}_API_KEY`;
+    push({
+      kind: "system",
+      text:
+        `To use ${preset?.label ?? provider}, either:\n` +
+        `  export ${env}=<your-key>\n` +
+        `  mosaic login ${provider} --key <your-key>\n` +
+        (preset?.keyUrl ? `\nGet a key at ${preset.keyUrl}` : ""),
+    });
   }
 
   const slashMatches = () => {

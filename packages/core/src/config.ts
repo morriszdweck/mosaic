@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { configPath, fileExists, projectConfigDir } from "./util/paths.ts";
 import { mergeToml, parseToml } from "./util/toml.ts";
+import { conventionalKeyEnv, PROVIDER_PRESETS } from "./providers/presets.ts";
 
 /**
  * Configuration resolution: sensible defaults, no mandatory config file.
@@ -21,6 +22,12 @@ export interface MosaicConfig {
   tokens: TokenConfig;
   permissions: PermissionsConfig;
   search: SearchConfig;
+  /**
+   * Keys saved by `mosaic login <provider> --key`, loaded from the auth store at
+   * runtime assembly. Kept separate from `providers[].apiKey` (which comes from
+   * config.toml) so precedence stays explicit — see resolveApiKey.
+   */
+  storedKeys: Record<string, string>;
 }
 
 export interface ProviderConfig {
@@ -76,16 +83,13 @@ export const DEFAULT_CONFIG: MosaicConfig = {
   smallModel: "openai:gpt-4o-mini",
   maxTokens: 8192,
   temperature: 0.2,
-  providers: {
-    openai: { apiKeyEnv: "OPENAI_API_KEY", baseUrl: "https://api.openai.com/v1" },
-    anthropic: { apiKeyEnv: "ANTHROPIC_API_KEY", baseUrl: "https://api.anthropic.com" },
-    openrouter: { apiKeyEnv: "OPENROUTER_API_KEY", baseUrl: "https://openrouter.ai/api/v1" },
-    groq: { apiKeyEnv: "GROQ_API_KEY", baseUrl: "https://api.groq.com/openai/v1" },
-    ollama: { baseUrl: "http://localhost:11434/v1" },
-    lmstudio: { baseUrl: "http://localhost:1234/v1" },
-    codex: {},
-    opencode: {},
-  },
+  // Derived from the preset table so a provider is added in exactly one place.
+  providers: Object.fromEntries(
+    Object.entries(PROVIDER_PRESETS).map(([name, preset]) => [
+      name,
+      { baseUrl: preset.baseUrl, apiKeyEnv: preset.apiKeyEnv },
+    ]),
+  ),
   tools: {
     outputLimit: 30_000,
     bashTimeoutMs: 120_000,
@@ -108,6 +112,7 @@ export const DEFAULT_CONFIG: MosaicConfig = {
   search: {
     backend: "duckduckgo",
   },
+  storedKeys: {},
 };
 
 export async function loadConfig(cwd: string = process.cwd()): Promise<MosaicConfig> {
@@ -194,8 +199,26 @@ function applyEnv(cfg: MosaicConfig): void {
   if (process.env.TAVILY_API_KEY) cfg.search.tavilyApiKey = process.env.TAVILY_API_KEY;
 }
 
-/** Resolve the API key for a provider: explicit config > env var. */
+/** Env var a provider's key is read from, falling back to the NAME_API_KEY convention. */
+export function keyEnvFor(cfg: MosaicConfig, provider: string): string {
+  return cfg.providers[provider]?.apiKeyEnv ?? PROVIDER_PRESETS[provider]?.apiKeyEnv ?? conventionalKeyEnv(provider);
+}
+
+/**
+ * Resolve the API key for a provider: config.toml > env var > saved login.
+ *
+ * Two fixes live here. Providers with no config entry now fall back to the
+ * NAME_API_KEY convention, so a `deepseek:` model works off DEEPSEEK_API_KEY
+ * alone — previously this returned nothing while the error text told you to set
+ * exactly that variable. And keys saved by `mosaic login --key` are consulted at
+ * all: nothing read them back before, so the documented BYOK path silently did
+ * nothing and only env vars ever worked.
+ *
+ * Env beats a saved key because exporting a variable is a deliberate act in the
+ * shell you are in; the saved key is the persistent default underneath it.
+ */
 export function resolveApiKey(cfg: MosaicConfig, provider: string): string | undefined {
   const p = cfg.providers[provider];
-  return p?.apiKey ?? (p?.apiKeyEnv ? process.env[p.apiKeyEnv] : undefined);
+  if (p?.apiKey) return p.apiKey;
+  return process.env[keyEnvFor(cfg, provider)] || cfg.storedKeys[provider] || undefined;
 }

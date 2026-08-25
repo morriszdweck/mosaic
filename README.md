@@ -2,7 +2,7 @@
 
 A terminal AI agent, from scratch — inspired by Nous Research's Hermes Agent. Same feature class (chat, tools, memory, skills, providers), three differentiators:
 
-1. **Frictionless provider onboarding** — Codex OAuth device flow (sign in with ChatGPT), OpenCode key paste, or standard API keys. No YAML archaeology.
+1. **Bring your own key** — a dozen providers built in, each just a base URL and a key. `mosaic login <provider>`, an env var, or one stanza of TOML for anything else. No YAML archaeology.
 2. **Token efficiency as a first-class design goal** — lazy tool schemas, aggressive truncation, auto-compaction, subagent isolation, prompt-cache-friendly layout, live token meter.
 3. **Easy to use** — sensible defaults, no mandatory config file. Install, log in, go.
 
@@ -37,32 +37,49 @@ directory with no `bunfig.toml`, or pass `--cwd` to point it at your project.
 ## Quick start
 
 ```sh
-mosaic login codex        # sign in with ChatGPT (device flow, no API key)
-mosaic                    # start the TUI
-mosaic -p "explain this repo"   # headless one-shot
+mosaic providers              # what's built in, and what's ready to use
+mosaic login openai           # paste a key (stored 0600 in ~/.mosaic/auth.json)
+mosaic                        # start the TUI
+mosaic -p "explain this repo" # headless one-shot
 ```
 
-Other ways to authenticate:
+Or skip the login entirely — export a key and go:
 
 ```sh
-mosaic login opencode                        # paste an OpenCode Go/Zen key
-mosaic login openai --key sk-...             # any standard API key
-export ANTHROPIC_API_KEY=...                 # env vars work too
+export ANTHROPIC_API_KEY=...
+mosaic -m anthropic:claude-sonnet-4-5
 ```
+
+Keys resolve as **config.toml > env var > saved login**, so a variable in your
+shell always overrides what you logged in with.
 
 ## Providers
 
-| Provider    | How                                                   |
+Every provider is an API key plus a base URL — run `mosaic providers` for the
+live list and which ones you already have keys for.
+
+| Provider    | Key                                                   |
 | ----------- | ----------------------------------------------------- |
-| OpenAI      | `OPENAI_API_KEY` or `mosaic login openai`             |
-| Anthropic   | `ANTHROPIC_API_KEY` or `mosaic login anthropic`       |
-| Codex       | `mosaic login codex` — OAuth device flow              |
-| OpenCode    | `mosaic login opencode` — paste key                   |
+| OpenAI      | `OPENAI_API_KEY`                                      |
+| Anthropic   | `ANTHROPIC_API_KEY`                                   |
 | OpenRouter  | `OPENROUTER_API_KEY`                                  |
 | Groq        | `GROQ_API_KEY`                                        |
+| DeepSeek    | `DEEPSEEK_API_KEY`                                    |
+| Together    | `TOGETHER_API_KEY`                                    |
+| Mistral     | `MISTRAL_API_KEY`                                     |
+| xAI         | `XAI_API_KEY`                                         |
+| Fireworks   | `FIREWORKS_API_KEY`                                   |
+| Cerebras    | `CEREBRAS_API_KEY`                                    |
 | Ollama      | keyless, `http://localhost:11434`                     |
 | LM Studio   | keyless, `http://localhost:1234`                      |
-| Any OpenAI-compatible endpoint | `[providers.x] base_url = "…"` in config |
+
+Anything else that speaks the OpenAI API works too:
+
+```toml
+[providers.myhost]
+base_url = "https://my-endpoint/v1"
+api_key_env = "MYHOST_API_KEY"
+```
 
 Models are referenced as `provider:model`, e.g.:
 

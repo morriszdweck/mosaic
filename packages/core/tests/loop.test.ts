@@ -3,7 +3,6 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Agent } from "../src/agent/loop.ts";
-import { AuthStore } from "../src/auth/store.ts";
 import { loadConfig, DEFAULT_CONFIG } from "../src/config.ts";
 import { PermissionGate } from "../src/permissions.ts";
 import { ToolRegistry } from "../src/tools/registry.ts";
@@ -68,7 +67,6 @@ describe("agent loop E2E (mock provider)", () => {
     config.model = "openai:test-model";
     const agent = new Agent({
       config,
-      authStore: new AuthStore(join(dir, "auth.json")),
       registry: makeRegistry(),
       permissionGate: new PermissionGate({ mode: "ask" }, []),
       memory: null,
@@ -117,7 +115,6 @@ describe("agent loop E2E (mock provider)", () => {
     config.model = "openai:test-model";
     const agent = new Agent({
       config,
-      authStore: new AuthStore(join(dir, "auth2.json")),
       registry: makeRegistry(),
       permissionGate: new PermissionGate({ mode: "ask" }, []),
       memory: null,
@@ -150,7 +147,6 @@ describe("agent loop E2E (mock provider)", () => {
     config.model = "openai:test-model";
     const agent = new Agent({
       config,
-      authStore: new AuthStore(join(dir, "auth3.json")),
       registry: makeRegistry(),
       permissionGate: new PermissionGate({ mode: "ask" }, []),
       memory: null,

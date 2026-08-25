@@ -45,6 +45,9 @@ export interface AgentRuntime {
 export async function createAgentRuntime(options: RuntimeOptions): Promise<AgentRuntime> {
   const config = options.config ?? (await loadConfig(options.cwd));
   const authStore = new AuthStore();
+  // Saved `mosaic login --key` credentials are only reachable through the async
+  // store, but provider resolution is synchronous — load them once, here.
+  config.storedKeys = { ...config.storedKeys, ...(await authStore.apiKeys()) };
   const withMemory = options.withMemory ?? config.memory.enabled;
   const memory = withMemory ? await MemoryStore.create() : null;
 
@@ -73,7 +76,6 @@ export async function createAgentRuntime(options: RuntimeOptions): Promise<Agent
 
   const agentOptions: AgentOptions = {
     config,
-    authStore,
     registry,
     permissionGate: gate,
     memory,

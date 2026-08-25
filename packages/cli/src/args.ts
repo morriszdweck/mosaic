@@ -80,7 +80,8 @@ Usage:
   mosaic -c                   Continue the most recent session
   mosaic --resume <id>        Resume a specific session
   mosaic sessions             List recent sessions
-  mosaic login [provider]     Sign in: codex (device flow), opencode (paste key), or any provider key
+  mosaic login [provider]     Save an API key (BYOK) — omit provider to pick from a list
+  mosaic providers            List built-in providers and which ones are ready
   mosaic logout [provider]    Remove stored credentials
   mosaic auth status          Show which providers are configured
   mosaic --version            Print version

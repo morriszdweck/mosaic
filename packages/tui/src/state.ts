@@ -44,7 +44,7 @@ export interface SlashCommand {
 
 export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "model", description: "Show or switch the active model (/model provider:name)" },
-  { name: "login", description: "Sign in a provider (/login codex | opencode | <name>)" },
+  { name: "login", description: "How to add a provider key (/login <provider>)" },
   { name: "clear", description: "Clear the conversation and start a fresh session" },
   { name: "compact", description: "Compact older context now" },
   { name: "resume", description: "Resume a previous session (/resume <id> or pick)" },
