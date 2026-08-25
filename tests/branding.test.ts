@@ -35,3 +35,27 @@ describe("placeholders", () => {
     expect(joined).toMatch(/csv|measuring|data/);
   });
 });
+
+describe("replaced interface plugins", () => {
+  test("names the built-ins Mosaic takes over from", async () => {
+    const src = await Bun.file(new URL("../src/plugin/branding/index.tsx", import.meta.url)).text();
+    // These render "• OpenCode <version>" and a tip about connecting a provider
+    // "to start coding". Neither is reachable through a slot — the host
+    // registers them append-only — so they are deactivated instead.
+    expect(src).toContain("internal:home-footer");
+    expect(src).toContain("internal:home-tips");
+    expect(src).toContain("api.plugins.deactivate");
+  });
+
+  test("a missing built-in does not break the rest of the branding", async () => {
+    const src = await Bun.file(new URL("../src/plugin/branding/index.tsx", import.meta.url)).text();
+    // An id that disappears upstream must not take Mosaic's wordmark with it.
+    expect(src).toMatch(/deactivate\([^)]*\)\.catch/);
+  });
+
+  test("tips describe Mosaic's own features, not coding", async () => {
+    const { TIPS } = (await import("../src/plugin/branding/index.tsx")) as unknown as { TIPS: string[] };
+    expect(TIPS.length).toBeGreaterThan(3);
+    for (const tip of TIPS) expect(tip.toLowerCase()).not.toContain("coding");
+  });
+});

@@ -61,6 +61,7 @@ if [ ! -x "$engine" ]; then
   exit 1
 fi
 
+export MOSAIC_VERSION
 MOSAIC_VERSION="$(bun --print "require('$ROOT/package.json').version" 2>/dev/null || echo "unknown")"
 
 case "${1:-}" in
