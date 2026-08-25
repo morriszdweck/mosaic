@@ -16,8 +16,8 @@ Mosaic adds:
   relevance and injected under a strict token budget.
 - **Its own state** — config, sessions, and credentials live in `~/.mosaic`, so
   Mosaic and OpenCode can coexist without touching each other.
-- **Heartbeat** — recurring wake-ups that run the agent on a schedule, each one
-  a fresh run so cost per tick stays flat.
+- **Scheduled tasks** — the agent can schedule a prompt to come back to itself
+  later, in the same conversation.
 - **First-launch setup** — pick a model in one keypress, including a free one
   that needs no account or card.
 - **Personality** — a `SOUL.md` that shapes tone and standing preferences.
@@ -83,26 +83,32 @@ turn.
 Memories are scoped: `user` and `preference` facts apply everywhere, while
 `project` facts only surface in the directory they were learned in.
 
-## Heartbeat
+## Scheduled tasks
 
-Recurring agent runs, in the spirit of Hermes' heartbeat jobs:
+Ask for something later and the agent schedules it itself:
 
-```sh
-mosaic heartbeat add inbox --every 30m \
-  --prompt "Check ~/notes/inbox.md. If anything is unfiled, file it and say what moved."
-mosaic heartbeat list
-mosaic heartbeat run        # scheduler in the foreground
-mosaic heartbeat tick       # run what is due once, for cron or launchd
+> *"Check the build again in ten minutes and tell me if it's still failing."*
+
+It calls a `schedule` tool, and when the time comes the prompt is submitted as a
+real message **in the same conversation**. The follow-up run therefore starts
+with the context it was planning against — no re-briefing, and no fresh session
+that has to be told what the task was about.
+
+```
+schedule add     when = "in 10m", "every 2h", "at 14:30"
+schedule list    what is pending here
+schedule cancel  by id
 ```
 
-Each tick is a **fresh run**: the agent gets the prompt and its tools, not the
-history of previous ticks. Tick 500 costs what tick 1 did, where a resident
-agent's per-tick cost climbs until it compacts. Write prompts that check state
-and act only if needed — *"if X, do Y, otherwise say nothing to do"*.
+A repeat reschedules from when it fires, not from the time it missed, so a
+Mosaic that was closed for a week does not come back and fire the same task a
+hundred times catching up.
 
-Guardrails, because an unattended loop that spends money needs them: minimum
-60s interval, `--max-runs` to bound a job, `--agent` to restrict which agent
-runs it, and `enable`/`disable` without deleting.
+**It only fires while Mosaic is running.** Tasks are bound to a live session —
+that is what makes them arrive in context. For something that must happen
+whether or not Mosaic is open, use cron with `mosaic run`. The tool description
+says this too, so the agent offers cron instead of promising a 3am reminder from
+a closed laptop.
 
 ## Personality
 
@@ -193,7 +199,7 @@ src/config.ts              config generation + user overrides
 src/agents.ts              agent definitions
 src/plugin/memory/         the memory tool and its recall hook
 src/plugin/branding/       wordmark and example prompts, via TUI slots
-src/heartbeat/             scheduled runs and their store
+src/plugin/schedule/       the schedule tool and its timer
 src/setup/                 first-launch model picker
 prompts/mosaic.md          base system instructions
 ```

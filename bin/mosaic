@@ -60,13 +60,6 @@ fi
 MOSAIC_VERSION="$(bun --print "require('$ROOT/package.json').version" 2>/dev/null || echo "unknown")"
 
 case "${1:-}" in
-  heartbeat)
-    shift
-    # The scheduler shells back through this launcher for each tick, so a job
-    # runs with exactly the config an interactive session has.
-    MOSAIC_LAUNCHER="$ROOT/bin/mosaic" MOSAIC_ROOT="$ROOT" \
-      exec bun run "$ROOT/src/heartbeat/index.ts" "$@"
-    ;;
   setup)
     shift
     MOSAIC_ROOT="$ROOT" exec bun run "$ROOT/src/setup/index.ts" --force "$@"
@@ -87,9 +80,9 @@ case "${1:-}" in
 esac
 
 # First launch: offer a model before dropping someone into a TUI that cannot
-# answer them. Only on a terminal, and never for a heartbeat tick, which must
-# not block waiting for input that will never come.
-if [ -t 0 ] && [ -t 1 ] && [ -z "${MOSAIC_HEARTBEAT:-}" ]; then
+# answer them. Only on a terminal — a piped or scripted run must never block
+# waiting for input that will not come.
+if [ -t 0 ] && [ -t 1 ]; then
   MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/setup/index.ts" || true
   # Setup writes config.json, so the generated config has to be rebuilt.
   MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" > "$OPENCODE_CONFIG"

@@ -40,6 +40,15 @@ jobs:
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           ./bin/mosaic debug agent mosaic | grep -q '"memory": true'
 
+      # Renaming is presentation, but a dropped provider key means the model
+      # picker silently shows upstream codenames again.
+      - name: Free tier is labelled and is the default
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          ./bin/mosaic debug config > "$RUNNER_TEMP/named.json"
+          grep -q "Free (via OC Zen)" "$RUNNER_TEMP/named.json"
+          grep -q "Mosaic Free" "$RUNNER_TEMP/named.json"
+
       # A ~/opencode.json used to leak its providers into Mosaic, because the
       # engine finds project config by walking up for that filename.
       - name: OpenCode project config does not leak in
@@ -54,14 +63,10 @@ jobs:
           fi
           rm -f "$HOME/opencode.json"
 
-      - name: Heartbeat scheduling works without an agent call
+      - name: Memory and schedule tools are both registered
         run: |
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
-          ./bin/mosaic heartbeat add ci --every 1h --prompt "noop"
-          ./bin/mosaic heartbeat list | grep -q ci
-          ./bin/mosaic heartbeat disable ci
-          ./bin/mosaic heartbeat tick | grep -q "Nothing due"
-          ./bin/mosaic heartbeat remove ci
+          ./bin/mosaic debug agent mosaic | grep -q '"schedule": true'
 
       # Branding lives in the TUI's own config; a plugin listed in the agent
       # config gets only its server half loaded and is silently never drawn.

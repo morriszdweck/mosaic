@@ -1,6 +1,6 @@
 {
   "name": "mosaic",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Mosaic — a general-purpose terminal AI agent, built on OpenCode.",
   "license": "MIT",
   "type": "module",

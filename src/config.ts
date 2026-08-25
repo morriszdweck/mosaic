@@ -55,7 +55,10 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
     instructions: [join(root, "prompts", "mosaic.md"), ...soulFiles(home)],
 
     // Memory is Mosaic's own addition — see src/plugin/memory.
-    plugin: [join(root, "src", "plugin", "memory", "index.ts")],
+    plugin: [
+      join(root, "src", "plugin", "memory", "index.ts"),
+      join(root, "src", "plugin", "schedule", "index.ts"),
+    ],
 
     provider: PROVIDER_LABELS,
 
