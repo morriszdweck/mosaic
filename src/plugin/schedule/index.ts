@@ -61,6 +61,75 @@ export const SchedulePlugin: Plugin = async ({ client }) => {
 
   return {
     tool: {
+      heartbeat: tool({
+        description: [
+          "Start a standing check that runs on an interval until the session ends.",
+          "",
+          "Each beat arrives as a message in this conversation, so you keep the",
+          "context and can compare against what you saw last time. The user can",
+          "talk to you normally in between — a beat is just another turn.",
+          "",
+          "Say what to look at when you start it. A beat that re-reads everything",
+          "costs the same every time regardless of whether anything changed, so",
+          "prefer a check that can end in 'nothing changed' quickly.",
+          "",
+          "Runs only while Mosaic is open. One heartbeat per conversation:",
+          "starting another replaces it. Stop it when the reason for it is gone.",
+        ].join("\n"),
+        args: {
+          action: tool.schema.enum(["start", "stop", "status"]),
+          every: tool.schema.string().optional().describe("For start: '5m', '30m', '2h'. Minimum 1m."),
+          watch: tool.schema
+            .string()
+            .optional()
+            .describe("For start: what to check each beat, and what counts as worth reporting."),
+        },
+        async execute(args, context) {
+          live.add(context.sessionID);
+
+          if (args.action === "stop") {
+            const stopped = store.stopHeartbeats(context.sessionID);
+            return stopped ? "Heartbeat stopped." : "No heartbeat running.";
+          }
+
+          if (args.action === "status") {
+            const beat = store.heartbeatFor(context.sessionID);
+            if (!beat) return "No heartbeat running.";
+            return `Heartbeat every ${Math.round((beat.repeat ?? 0) / 60)}m, ${beat.fired} beat(s) so far, next ${describeWhen(beat)}.\nWatching: ${beat.prompt}`;
+          }
+
+          if (!args.every || !args.watch) return "Both `every` and `watch` are required to start a heartbeat.";
+          let parsed;
+          try {
+            parsed = parseWhen(`every ${args.every.replace(/^every\s+/i, "")}`);
+          } catch (error) {
+            return error instanceof Error ? error.message : String(error);
+          }
+          if (parsed.repeat === null) return "A heartbeat has to repeat — give an interval like '10m'.";
+
+          // One per conversation: two overlapping standing checks in the same
+          // context produce interleaved reports nobody can follow.
+          const replaced = store.stopHeartbeats(context.sessionID);
+          const beat = store.add({
+            sessionID: context.sessionID,
+            prompt: [
+              "[heartbeat] Check the following now and report only what changed or needs attention.",
+              "If nothing has changed, say so in one line and stop.",
+              "",
+              args.watch,
+            ].join("\n"),
+            dueAt: parsed.dueAt,
+            repeat: parsed.repeat,
+            when: `every ${args.every}`,
+            heartbeat: true,
+          });
+          return (
+            `${replaced ? "Replaced the previous heartbeat. " : ""}` +
+            `Heartbeat every ${Math.round(parsed.repeat / 60)}m, first beat ${describeWhen(beat)}.`
+          );
+        },
+      }),
+
       schedule: tool({
         description: [
           "Schedule a prompt to be sent back to you later, in this conversation.",

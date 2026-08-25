@@ -19,6 +19,8 @@ import { dirname, join } from "node:path";
 export interface Task {
   id: number;
   sessionID: string;
+  /** A heartbeat is a standing check rather than a one-off reminder. */
+  heartbeat: boolean;
   prompt: string;
   /** Epoch millis of the next fire. */
   dueAt: number;
@@ -47,6 +49,7 @@ export class TaskStore {
         due_at INTEGER NOT NULL,
         repeat INTEGER,
         when_text TEXT NOT NULL,
+        heartbeat INTEGER NOT NULL DEFAULT 0,
         fired INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         done INTEGER NOT NULL DEFAULT 0
@@ -55,18 +58,30 @@ export class TaskStore {
     `);
   }
 
-  add(input: { sessionID: string; prompt: string; dueAt: number; repeat?: number | null; when: string }): Task {
+  add(input: {
+    sessionID: string;
+    prompt: string;
+    dueAt: number;
+    repeat?: number | null;
+    when: string;
+    heartbeat?: boolean;
+  }): Task {
     if (!input.prompt.trim()) throw new Error("A task needs a prompt.");
     if (input.repeat != null && input.repeat < 60) throw new Error("Repeat must be at least 60 seconds.");
     const row = this.db
       .prepare(
-        `INSERT INTO tasks (session_id, prompt, due_at, repeat, when_text, created_at)
-         VALUES (?, ?, ?, ?, ?, ?) RETURNING *`,
+        `INSERT INTO tasks (session_id, prompt, due_at, repeat, when_text, created_at, heartbeat)
+         VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *`,
       )
-      .get(input.sessionID, input.prompt.trim(), input.dueAt, input.repeat ?? null, input.when, Date.now()) as Record<
-      string,
-      unknown
-    >;
+      .get(
+        input.sessionID,
+        input.prompt.trim(),
+        input.dueAt,
+        input.repeat ?? null,
+        input.when,
+        Date.now(),
+        input.heartbeat ? 1 : 0,
+      ) as Record<string, unknown>;
     return toTask(row);
   }
 
@@ -104,6 +119,20 @@ export class TaskStore {
     return row ? toTask(row) : null;
   }
 
+  /** The running heartbeat for a session, if any. Only one at a time. */
+  heartbeatFor(sessionID: string): Task | null {
+    return this.list(sessionID).find((t) => t.heartbeat) ?? null;
+  }
+
+  /** Stop every heartbeat in a session. Returns how many were stopped. */
+  stopHeartbeats(sessionID: string): number {
+    let stopped = 0;
+    for (const task of this.list(sessionID)) {
+      if (task.heartbeat && this.cancel(task.id)) stopped++;
+    }
+    return stopped;
+  }
+
   cancel(id: number): boolean {
     return this.db.prepare("UPDATE tasks SET done = 1 WHERE id = ? AND done = 0").run(id).changes > 0;
   }
@@ -121,6 +150,7 @@ function toTask(row: Record<string, unknown>): Task {
     dueAt: row.due_at as number,
     repeat: (row.repeat as number | null) ?? null,
     when: row.when_text as string,
+    heartbeat: (row.heartbeat as number) === 1,
     fired: row.fired as number,
     createdAt: row.created_at as number,
     done: (row.done as number) === 1,

@@ -1,0 +1,241 @@
+{
+  "$schema": "https://opencode.ai/theme.json",
+  "defs": {
+    "midnight": "#04070d",
+    "deepBlue": "#080d17",
+    "slateBlue": "#0d1420",
+    "steel": "#1b2536",
+    "steelSubtle": "#121a28",
+    "frost": "#e4eefb",
+    "haze": "#7b90ad",
+    "sky": "#6dbcf7",
+    "ice": "#a8daff",
+    "azure": "#3a8fdd",
+    "cobalt": "#2b6ec4",
+    "periwinkle": "#8aa4f0",
+    "seafoam": "#4fc4a8",
+    "amber": "#e3b264",
+    "coral": "#f0808a",
+    "paper": "#f3f8fe",
+    "paperRaised": "#e7f0fb",
+    "paperElement": "#dae7f6",
+    "paperBorder": "#bcd0e8",
+    "paperBorderSubtle": "#d3e1f2",
+    "navyInk": "#0e2340",
+    "navyMuted": "#5a7590",
+    "skyLight": "#1a72bd",
+    "iceLight": "#2f8fd4",
+    "azureLight": "#1a5fa8",
+    "cobaltLight": "#12457f",
+    "periwinkleLight": "#4a5fc4",
+    "seafoamLight": "#1c8770",
+    "amberLight": "#8c6414",
+    "coralLight": "#c2414f",
+    "addedBg": "#0f2c2a",
+    "removedBg": "#301a20",
+    "addedGutter": "#0c2220",
+    "removedGutter": "#26151a"
+  },
+  "theme": {
+    "primary": {
+      "dark": "sky",
+      "light": "skyLight"
+    },
+    "secondary": {
+      "dark": "cobalt",
+      "light": "cobaltLight"
+    },
+    "accent": {
+      "dark": "ice",
+      "light": "iceLight"
+    },
+    "error": {
+      "dark": "coral",
+      "light": "coralLight"
+    },
+    "warning": {
+      "dark": "amber",
+      "light": "amberLight"
+    },
+    "success": {
+      "dark": "seafoam",
+      "light": "seafoamLight"
+    },
+    "info": {
+      "dark": "azure",
+      "light": "azureLight"
+    },
+    "text": {
+      "dark": "frost",
+      "light": "navyInk"
+    },
+    "textMuted": {
+      "dark": "haze",
+      "light": "navyMuted"
+    },
+    "background": {
+      "dark": "midnight",
+      "light": "paper"
+    },
+    "backgroundPanel": {
+      "dark": "deepBlue",
+      "light": "paperRaised"
+    },
+    "backgroundElement": {
+      "dark": "slateBlue",
+      "light": "paperElement"
+    },
+    "border": {
+      "dark": "steel",
+      "light": "paperBorder"
+    },
+    "borderActive": {
+      "dark": "sky",
+      "light": "skyLight"
+    },
+    "borderSubtle": {
+      "dark": "steelSubtle",
+      "light": "paperBorderSubtle"
+    },
+    "diffAdded": {
+      "dark": "seafoam",
+      "light": "seafoamLight"
+    },
+    "diffRemoved": {
+      "dark": "coral",
+      "light": "coralLight"
+    },
+    "diffContext": {
+      "dark": "haze",
+      "light": "navyMuted"
+    },
+    "diffHunkHeader": {
+      "dark": "haze",
+      "light": "navyMuted"
+    },
+    "diffHighlightAdded": {
+      "dark": "#79dcc2",
+      "light": "seafoamLight"
+    },
+    "diffHighlightRemoved": {
+      "dark": "#f79ba3",
+      "light": "coralLight"
+    },
+    "diffAddedBg": {
+      "dark": "addedBg",
+      "light": "#d9f2ea"
+    },
+    "diffRemovedBg": {
+      "dark": "removedBg",
+      "light": "#fbe0e4"
+    },
+    "diffContextBg": {
+      "dark": "deepBlue",
+      "light": "paperRaised"
+    },
+    "diffLineNumber": {
+      "dark": "#5a6f8c",
+      "light": "navyMuted"
+    },
+    "diffAddedLineNumberBg": {
+      "dark": "addedGutter",
+      "light": "#c8e8de"
+    },
+    "diffRemovedLineNumberBg": {
+      "dark": "removedGutter",
+      "light": "#f4d2d8"
+    },
+    "markdownText": {
+      "dark": "frost",
+      "light": "navyInk"
+    },
+    "markdownHeading": {
+      "dark": "sky",
+      "light": "skyLight"
+    },
+    "markdownLink": {
+      "dark": "ice",
+      "light": "iceLight"
+    },
+    "markdownLinkText": {
+      "dark": "ice",
+      "light": "iceLight"
+    },
+    "markdownCode": {
+      "dark": "seafoam",
+      "light": "seafoamLight"
+    },
+    "markdownBlockQuote": {
+      "dark": "haze",
+      "light": "navyMuted"
+    },
+    "markdownEmph": {
+      "dark": "amber",
+      "light": "amberLight"
+    },
+    "markdownStrong": {
+      "dark": "ice",
+      "light": "iceLight"
+    },
+    "markdownHorizontalRule": {
+      "dark": "steel",
+      "light": "paperBorder"
+    },
+    "markdownListItem": {
+      "dark": "sky",
+      "light": "skyLight"
+    },
+    "markdownListEnumeration": {
+      "dark": "sky",
+      "light": "skyLight"
+    },
+    "markdownImage": {
+      "dark": "periwinkle",
+      "light": "periwinkleLight"
+    },
+    "markdownImageText": {
+      "dark": "periwinkle",
+      "light": "periwinkleLight"
+    },
+    "markdownCodeBlock": {
+      "dark": "frost",
+      "light": "navyInk"
+    },
+    "syntaxComment": {
+      "dark": "haze",
+      "light": "navyMuted"
+    },
+    "syntaxKeyword": {
+      "dark": "periwinkle",
+      "light": "periwinkleLight"
+    },
+    "syntaxFunction": {
+      "dark": "sky",
+      "light": "skyLight"
+    },
+    "syntaxVariable": {
+      "dark": "frost",
+      "light": "navyInk"
+    },
+    "syntaxString": {
+      "dark": "seafoam",
+      "light": "seafoamLight"
+    },
+    "syntaxNumber": {
+      "dark": "amber",
+      "light": "amberLight"
+    },
+    "syntaxType": {
+      "dark": "ice",
+      "light": "iceLight"
+    },
+    "syntaxOperator": {
+      "dark": "azure",
+      "light": "azureLight"
+    },
+    "syntaxPunctuation": {
+      "dark": "haze",
+      "light": "navyMuted"
+    }
+  }
+}

@@ -63,10 +63,21 @@ jobs:
           fi
           rm -f "$HOME/opencode.json"
 
-      - name: Memory and schedule tools are both registered
+      - name: Every Mosaic tool is registered
         run: |
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
-          ./bin/mosaic debug agent mosaic | grep -q '"schedule": true'
+          ./bin/mosaic debug agent mosaic > "$RUNNER_TEMP/tools.json"
+          for t in memory schedule heartbeat soul skill; do
+            grep -q "\"$t\": true" "$RUNNER_TEMP/tools.json" || { echo "tool $t missing" >&2; exit 1; }
+          done
+
+      - name: Mosaic's own skills are installed
+        run: |
+          export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
+          ./bin/mosaic debug skill > "$RUNNER_TEMP/skills.json"
+          for s in agent-swarm customize-mosaic mosaic-self; do
+            grep -q "\"$s\"" "$RUNNER_TEMP/skills.json" || { echo "skill $s missing" >&2; exit 1; }
+          done
 
       # Swarm is fetched by install.sh, so CI vendors it the same way and
       # checks the orchestrator actually reaches the engine as an agent.
@@ -86,6 +97,7 @@ jobs:
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           bun run src/swarm.ts
           test -f "$MOSAIC_HOME/config/opencode/themes/mosaic.json"
+          test -f "$MOSAIC_HOME/config/opencode/themes/mosaic-dark.json"
           grep -q '"theme": "mosaic"' "$MOSAIC_HOME/config/opencode/tui.json"
           ./bin/mosaic agent list > "$RUNNER_TEMP/agents.txt"
           grep -qE "^builder " "$RUNNER_TEMP/agents.txt"

@@ -181,6 +181,24 @@ whether or not Mosaic is open, use cron with `mosaic run`. The tool description
 says this too, so the agent offers cron instead of promising a 3am reminder from
 a closed laptop.
 
+## Watching, and changing itself
+
+Mosaic can change what it does beyond the current turn:
+
+- **`heartbeat`** — a standing check on an interval. Each beat arrives as a
+  message in the same conversation, so it keeps context and compares against
+  what it saw last time; you can talk to it in between. One per conversation,
+  and only while Mosaic is open.
+- **`soul`** — read and rewrite `SOUL.md`, its standing voice.
+- **`skill`** — write a markdown skill it can load later, so a procedure worked
+  out once is done the same way next time.
+
+All three are plain files under `~/.mosaic` that you can read and edit, and all
+three apply from the next start. The `mosaic-self` skill tells the agent when
+each is worth using — the bar being whether it will still matter next week.
+
+`customize-mosaic` covers configuring Mosaic itself.
+
 ## Personality
 
 Drop a `SOUL.md` in `~/.mosaic/` and it is appended to Mosaic's own instructions
@@ -210,8 +228,9 @@ need the expensive model.
 
 ## Theme
 
-Mosaic ships a `mosaic` theme and uses it by default in place of the engine's
-own: deep navy grounds with a light-blue accent, and light and dark variants.
+Mosaic ships two themes and uses `mosaic` by default in place of the engine's
+own: deep navy grounds with a light-blue accent, in light and dark variants.
+`mosaic-dark` is the same identity on near-black, for low-light terminals.
 The other built-in themes are still there — `/theme` to switch, or set `theme`
 in `~/.mosaic/config/opencode/tui.json`.
 
@@ -283,10 +302,12 @@ src/config.ts              config generation + user overrides
 src/agents.ts              agent definitions
 src/plugin/memory/         the memory tool and its recall hook
 src/plugin/branding/       wordmark and example prompts, via TUI slots
-src/plugin/schedule/       the schedule tool and its timer
+src/plugin/schedule/       the schedule and heartbeat tools
+src/plugin/evolve/         the soul and skill tools
+skills/                    skills Mosaic ships
+themes/                    mosaic and mosaic-dark
 src/swarm.ts               syncs Swarm's agents into Mosaic's config
 agents/                    Mosaic's general-purpose Agent Swarm definitions
-themes/mosaic.json         the Mosaic theme
 skills/agent-swarm/        the Agent Swarm skill
 vendor/swarm/              opencode-swarm checkout (fetched by install.sh)
 src/setup/                 first-launch model picker
