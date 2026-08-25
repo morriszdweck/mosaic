@@ -210,3 +210,26 @@ describe("checkpoint scope", () => {
     store.close();
   });
 });
+
+describe("checkpoint schema migration", () => {
+  test("a database created before the directory column still opens", async () => {
+    const { Database } = await import("bun:sqlite");
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(join(home, "checkpoints"), { recursive: true });
+
+    // Exactly the shape 0.9.0 shipped. CREATE TABLE IF NOT EXISTS is a no-op
+    // against this, so without a migration every query naming `directory`
+    // fails with "no such column".
+    const old = new Database(join(home, "checkpoints", "index.db"), { create: true });
+    old.exec(`CREATE TABLE checkpoints (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+      label TEXT NOT NULL, created_at INTEGER NOT NULL);`);
+    old.exec("INSERT INTO checkpoints (session_id, label, created_at) VALUES ('ses_old', 'old', 1)");
+    old.close();
+
+    const store = new CheckpointStore(home);
+    expect(() => store.listForDirectory(cwd)).not.toThrow();
+    expect(store.get(1)?.label).toBe("old");
+    store.close();
+  });
+});

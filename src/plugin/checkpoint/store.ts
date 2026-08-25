@@ -57,6 +57,23 @@ export class CheckpointStore {
         PRIMARY KEY (checkpoint_id, path)
       );
     `);
+    this.migrate();
+  }
+
+  /**
+   * Add columns to a table that already exists.
+   *
+   * `CREATE TABLE IF NOT EXISTS` is a no-op against an older database, so a new
+   * column in the definition above never appears and every query naming it
+   * fails at runtime. This is the release that learned that the hard way.
+   */
+  private migrate(): void {
+    const columns = (this.db.prepare("PRAGMA table_info(checkpoints)").all() as Array<{ name: string }>).map(
+      (c) => c.name,
+    );
+    if (!columns.includes("directory")) {
+      this.db.exec("ALTER TABLE checkpoints ADD COLUMN directory TEXT NOT NULL DEFAULT ''");
+    }
   }
 
   create(sessionID: string, label: string, directory = ""): Checkpoint {
