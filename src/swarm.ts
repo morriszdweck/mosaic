@@ -16,7 +16,7 @@
 import { existsSync } from "node:fs";
 import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, sep } from "node:path";
 
 const MOSAIC_HOME = process.env.MOSAIC_HOME ?? join(homedir(), ".mosaic");
 
@@ -50,6 +50,15 @@ interface Manifest {
 }
 
 const MANIFEST = "swarm-manifest.json";
+
+/**
+ * Vendored skills Mosaic ships its own replacement for.
+ *
+ * Upstream's skill is written for coding and calls the feature "OpenCode
+ * Swarm". Mosaic's is general and calls it Agent Swarm. Installing both would
+ * offer the model two overlapping skills that disagree.
+ */
+const SUPERSEDED_SKILLS = new Set(["opencode-swarm"]);
 
 async function readManifest(configDir: string): Promise<Manifest> {
   try {
@@ -113,18 +122,24 @@ export async function syncSwarm(paths: SwarmPaths): Promise<SyncResult> {
     result.installed.push(file);
   }
 
-  const skillSrc = join(paths.source, "skills");
-  if (existsSync(skillSrc)) {
-    for (const name of await readdir(skillSrc)) {
-      const dest = join(skillDir, name);
-      if (existsSync(dest) && !previous.skills.includes(name)) {
-        result.skipped.push(name);
-        continue;
-      }
-      await cp(join(skillSrc, name), dest, { recursive: true });
-      manifest.skills.push(name);
-      result.installed.push(name);
+  const skillSources = new Map<string, string>();
+  for (const dir of [join(paths.source, "skills"), join(paths.overrides, "..", "skills")]) {
+    if (!existsSync(dir)) continue;
+    for (const name of await readdir(dir)) {
+      if (dir.includes(`${sep}vendor${sep}`) && SUPERSEDED_SKILLS.has(name)) continue;
+      skillSources.set(name, join(dir, name));
     }
+  }
+
+  for (const [name, src] of skillSources) {
+    const dest = join(skillDir, name);
+    if (existsSync(dest) && !previous.skills.includes(name)) {
+      result.skipped.push(name);
+      continue;
+    }
+    await cp(src, dest, { recursive: true });
+    manifest.skills.push(name);
+    result.installed.push(name);
   }
 
   // Drop anything we installed previously that swarm no longer ships, so a

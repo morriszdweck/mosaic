@@ -40,8 +40,10 @@ describe("sync", () => {
   });
 
   test("installs skills as a directory containing SKILL.md", async () => {
+    mkdirSync(join(root, "vendor", "swarm", "skills", "extra"), { recursive: true });
+    writeFileSync(join(root, "vendor", "swarm", "skills", "extra", "SKILL.md"), "# extra\n");
     await syncSwarm(paths);
-    expect(existsSync(join(paths.configDir, "skill", "opencode-swarm", "SKILL.md"))).toBe(true);
+    expect(existsSync(join(paths.configDir, "skill", "extra", "SKILL.md"))).toBe(true);
   });
 
   test("is idempotent — running twice changes nothing", async () => {
@@ -134,5 +136,24 @@ describe("names", () => {
 
   test("empty when not vendored", async () => {
     expect(await swarmAgentNames(join(root, "nope"))).toEqual([]);
+  });
+});
+
+describe("Agent Swarm skill", () => {
+  test("Mosaic's skill supersedes the upstream one", async () => {
+    mkdirSync(join(root, "skills", "agent-swarm"), { recursive: true });
+    writeFileSync(join(root, "skills", "agent-swarm", "SKILL.md"), "---\nname: agent-swarm\n---\nAgent Swarm\n");
+    await syncSwarm(paths);
+    // Both would offer the model two overlapping skills that disagree on what
+    // the feature is even called.
+    expect(existsSync(join(paths.configDir, "skill", "agent-swarm"))).toBe(true);
+    expect(existsSync(join(paths.configDir, "skill", "opencode-swarm"))).toBe(false);
+  });
+
+  test("an unrelated vendored skill is still installed", async () => {
+    mkdirSync(join(root, "vendor", "swarm", "skills", "something-else"), { recursive: true });
+    writeFileSync(join(root, "vendor", "swarm", "skills", "something-else", "SKILL.md"), "x");
+    await syncSwarm(paths);
+    expect(existsSync(join(paths.configDir, "skill", "something-else"))).toBe(true);
   });
 });

@@ -16,7 +16,7 @@ Mosaic adds:
   relevance and injected under a strict token budget.
 - **Its own state** — config, sessions, and credentials live in `~/.mosaic`, so
   Mosaic and OpenCode can coexist without touching each other.
-- **Swarm mode** — an orchestrator that decomposes a task and runs specialists
+- **Agent Swarm** — an orchestrator that decomposes a task and runs specialists
   in parallel, installed with Mosaic.
 - **Scheduled tasks** — the agent can schedule a prompt to come back to itself
   later, in the same conversation.
@@ -85,7 +85,7 @@ turn.
 Memories are scoped: `user` and `preference` facts apply everywhere, while
 `project` facts only surface in the directory they were learned in.
 
-## Swarm mode
+## Agent Swarm
 
 For work with several independent pieces, `swarm` decomposes the task and runs
 specialists in parallel rather than doing it one step at a time:
@@ -113,18 +113,17 @@ same roles — a reviewer that checks an argument as readily as a diff, an
 optimizer that tightens a process as readily as a hot loop — and layers them
 over the vendored copy, which stays untouched so re-fetching it is safe.
 
-Swarm comes from [opencode-swarm](https://github.com/morriszdweck/opencode-swarm)
-and is fetched by the installer into `vendor/swarm`, then synced into Mosaic's
-own agent directory on each launch. Its own installer targets
-`~/.config/opencode`, which is the OpenCode install Mosaic keeps out of — this
-route keeps that separation.
+Agent Swarm builds on [opencode-swarm](https://github.com/morriszdweck/opencode-swarm),
+fetched by the installer into `vendor/swarm` and synced into Mosaic's own agent
+directory on each launch. Its own installer targets `~/.config/opencode`, which
+is the OpenCode install Mosaic keeps out of — this route keeps that separation.
 
 Those five names are effectively reserved. If you already have an agent with one
 of them, Mosaic keeps yours and says so rather than overwriting it; the rest
 still install.
 
-Parallel agents are not free — each specialist is its own run. Swarm earns that
-on work with genuinely independent pieces, not on a one-line edit.
+Parallel agents are not free — each specialist is its own run. A swarm earns
+that on work with genuinely independent pieces, not on a one-line edit.
 
 ## Scheduled tasks
 
@@ -245,7 +244,8 @@ src/plugin/memory/         the memory tool and its recall hook
 src/plugin/branding/       wordmark and example prompts, via TUI slots
 src/plugin/schedule/       the schedule tool and its timer
 src/swarm.ts               syncs Swarm's agents into Mosaic's config
-agents/                    Mosaic's general-purpose Swarm agents
+agents/                    Mosaic's general-purpose Agent Swarm definitions
+skills/agent-swarm/        the Agent Swarm skill
 vendor/swarm/              opencode-swarm checkout (fetched by install.sh)
 src/setup/                 first-launch model picker
 prompts/mosaic.md          base system instructions
