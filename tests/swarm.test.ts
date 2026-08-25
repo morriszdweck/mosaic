@@ -157,3 +157,29 @@ describe("Agent Swarm skill", () => {
     expect(existsSync(join(paths.configDir, "skill", "something-else"))).toBe(true);
   });
 });
+
+describe("shipped skills", () => {
+  test("customize-opencode is shadowed, with no description so it is not offered", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(
+      new URL("../skills/customize-opencode/SKILL.md", import.meta.url).pathname,
+      "utf8",
+    );
+    // The engine's built-in cannot be disabled from config, but a skill of the
+    // same name replaces it. Its advice — edit opencode.json, edit
+    // ~/.config/opencode — points at a different program's install.
+    expect(src).not.toMatch(/^description:/m);
+    expect(src).toContain("customize-mosaic");
+  });
+
+  test("every other shipped skill has a description, or it can never be found", async () => {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const dir = new URL("../skills/", import.meta.url).pathname;
+    for (const name of readdirSync(dir)) {
+      if (name === "customize-opencode") continue;
+      const src = readFileSync(`${dir}${name}/SKILL.md`, "utf8");
+      expect(src, name).toMatch(/^description: \S/m);
+      expect(src, name).toMatch(/^name: /m);
+    }
+  });
+});

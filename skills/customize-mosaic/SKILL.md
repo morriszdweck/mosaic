@@ -66,6 +66,12 @@ Mosaic rather than replacing what it ships.
 half. A plugin that draws something must be listed there or it is accepted,
 reported as loaded, and silently never drawn.
 
+## The engine's own skill
+
+`customize-opencode` is shadowed by an inert stub. Its advice applies to a
+separate OpenCode install, not to Mosaic. If it ever loads, ignore it and use
+this skill instead.
+
 ## Before changing anything
 
 Read the current file first and preserve what the user did not ask to change.

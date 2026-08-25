@@ -23,7 +23,7 @@ const SOUL = join(MOSAIC_HOME, "SOUL.md");
 const SKILLS = join(MOSAIC_HOME, "config", "opencode", "skill");
 
 /** Skills Mosaic installs itself; editing them would be undone on next launch. */
-const MANAGED = new Set(["agent-swarm", "customize-mosaic", "mosaic-self"]);
+const MANAGED = new Set(["agent-swarm", "customize-mosaic", "mosaic-self", "customize-opencode"]);
 
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -59,9 +59,11 @@ export const EvolvePlugin: Plugin = async () => {
         },
       }),
 
-      skill: tool({
+      skill_write: tool({
         description: [
           "Write a skill: a markdown document you can load on demand later.",
+          "",
+          "This authors skills. The separate `skill` tool loads them.",
           "",
           "Write one when you have worked something out that will come up again —",
           "a procedure, a house style, the shape of a recurring task. The point is",

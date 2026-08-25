@@ -67,7 +67,7 @@ jobs:
         run: |
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           ./bin/mosaic debug agent mosaic > "$RUNNER_TEMP/tools.json"
-          for t in memory schedule heartbeat soul skill; do
+          for t in memory schedule heartbeat soul skill skill_write; do
             grep -q "\"$t\": true" "$RUNNER_TEMP/tools.json" || { echo "tool $t missing" >&2; exit 1; }
           done
 
@@ -78,6 +78,11 @@ jobs:
           for s in agent-swarm customize-mosaic mosaic-self; do
             grep -q "\"$s\"" "$RUNNER_TEMP/skills.json" || { echo "skill $s missing" >&2; exit 1; }
           done
+          # The engine's built-in customize-opencode tells an agent to edit
+          # ~/.config/opencode, which is a different install. Mosaic shadows it.
+          if grep -q '"<built-in>"' "$RUNNER_TEMP/skills.json"; then
+            echo "a built-in skill is still reaching the agent" >&2; exit 1
+          fi
 
       # Swarm is fetched by install.sh, so CI vendors it the same way and
       # checks the orchestrator actually reaches the engine as an agent.

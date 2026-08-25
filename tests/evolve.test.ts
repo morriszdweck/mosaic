@@ -107,3 +107,14 @@ describe("themes", () => {
     }
   });
 });
+
+describe("tool names", () => {
+  test("the authoring tool does not collide with the engine's skill loader", async () => {
+    const src = await Bun.file(new URL("../src/plugin/evolve/index.ts", import.meta.url)).text();
+    // The engine ships a `skill` tool that *loads* skills. Registering another
+    // tool with that name shadows it, and the agent silently loses the ability
+    // to load any skill at all.
+    expect(src).toContain("skill_write: tool({");
+    expect(src).not.toMatch(/^\s{6}skill: tool\(\{/m);
+  });
+});
