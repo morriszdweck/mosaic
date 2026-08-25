@@ -119,3 +119,11 @@ jobs:
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           ./bin/mosaic --version >/dev/null
           grep -q "branding" "$MOSAIC_HOME/config/opencode/tui.json"
+
+      # There are two footers. The sidebar's is the one still on screen once a
+      # session is open, and it was the one left showing the engine version.
+      - name: Both engine footers are deactivated
+        run: |
+          grep -q "internal:home-footer" src/plugin/branding/index.tsx
+          grep -q "internal:sidebar-footer" src/plugin/branding/index.tsx
+          grep -q "internal:home-tips" src/plugin/branding/index.tsx

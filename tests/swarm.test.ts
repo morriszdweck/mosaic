@@ -159,17 +159,23 @@ describe("Agent Swarm skill", () => {
 });
 
 describe("shipped skills", () => {
-  test("customize-opencode is shadowed, with no description so it is not offered", async () => {
+  test("customize-opencode is shadowed by a stub that steers away from itself", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync(
       new URL("../skills/customize-opencode/SKILL.md", import.meta.url).pathname,
       "utf8",
     );
-    // The engine's built-in cannot be disabled from config, but a skill of the
-    // same name replaces it. Its advice — edit opencode.json, edit
-    // ~/.config/opencode — points at a different program's install.
-    expect(src).not.toMatch(/^description:/m);
+    // The built-in cannot be disabled from config, and its advice — edit
+    // opencode.json, edit ~/.config/opencode — points at a different program's
+    // install. A skill of the same name replaces it.
+    //
+    // It carries a description on purpose. Shipping it without one did not stop
+    // the agent loading it; if anything a nameless entry invites a probe. An
+    // explicit "do not use" is what actually keeps it shut.
+    expect(src).toMatch(/^description: "DO NOT USE/m);
     expect(src).toContain("customize-mosaic");
+    // And if it is loaded anyway, it should cost almost nothing.
+    expect(src.length).toBeLessThan(600);
   });
 
   test("every other shipped skill has a description, or it can never be found", async () => {

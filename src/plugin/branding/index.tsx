@@ -34,13 +34,16 @@ const PLACEHOLDERS = [
 /**
  * Built-in interface plugins Mosaic replaces.
  *
- * `home-footer` renders "• OpenCode <version>" and `home-tips` advertises
- * connecting a provider "to start coding". Neither is reachable through a slot
- * — the host registers them append-only, so anything Mosaic adds lands beside
- * them rather than instead of them. Deactivating them is the supported way to
- * take the space over.
+ * `home-footer` and `sidebar-footer` each render "• OpenCode <version>", and
+ * `home-tips` advertises connecting a provider "to start coding". None is
+ * reachable through a slot — the host registers them append-only, so anything
+ * Mosaic adds lands beside them rather than instead of them. Deactivating them
+ * is the supported way to take the space over.
+ *
+ * There are two footers because the sidebar has its own, and it is the one
+ * still visible once a session is open.
  */
-const REPLACED_PLUGINS = ["internal:home-footer", "internal:home-tips"];
+const REPLACED_PLUGINS = ["internal:home-footer", "internal:home-tips", "internal:sidebar-footer"];
 
 /** Shown under the prompt, in place of the engine's coding-flavoured tips. */
 const TIPS = [
@@ -83,6 +86,17 @@ const tui: TuiPlugin = async (api) => {
           <box flexDirection="row" flexGrow={1}>
             <text fg={api.theme.current.textMuted}>{cwdLabel()}</text>
             <box flexGrow={1} />
+            <text fg={api.theme.current.primary}>◆ </text>
+            <text fg={api.theme.current.textMuted}>{version ? `Mosaic ${version}` : "Mosaic"}</text>
+          </box>
+        );
+      },
+
+      // Taking over from internal:sidebar-footer, which renders the same
+      // engine version down the right-hand side of an open session.
+      sidebar_footer() {
+        return (
+          <box flexDirection="row">
             <text fg={api.theme.current.primary}>◆ </text>
             <text fg={api.theme.current.textMuted}>{version ? `Mosaic ${version}` : "Mosaic"}</text>
           </box>
