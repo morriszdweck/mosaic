@@ -27,7 +27,7 @@ jobs:
             const raw = await Bun.file(process.env.RUNNER_TEMP + "/resolved.json").text();
             const cfg = JSON.parse(raw.slice(raw.indexOf("{")));
             const agents = Object.keys(cfg.agent ?? {});
-            for (const name of ["mosaic", "research", "writer", "analyst", "coder"]) {
+            for (const name of ["mosaic", "writer", "analyst", "builder"]) {
               if (!agents.includes(name)) throw new Error(`agent "${name}" was dropped by the engine`);
             }
             if (!(cfg.plugin ?? []).some((p) => p.includes("memory"))) throw new Error("memory plugin was dropped");
