@@ -85,24 +85,31 @@ describe("skills the agent writes", () => {
 });
 
 describe("themes", () => {
-  test("mosaic-dark shares the mosaic key set", async () => {
-    const light = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic.json"), "utf8"));
-    const dark = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic-dark.json"), "utf8"));
+  const read = (name: string) =>
+    JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", name), "utf8")) as {
+      defs: Record<string, string>;
+      theme: Record<string, { dark: string; light: string }>;
+    };
+
+  test("mosaic-dark shares the light theme's key set", async () => {
+    const light = read("mosaic-light.json");
+    const dark = read("mosaic-dark.json");
     expect(Object.keys(dark.theme).sort()).toEqual(Object.keys(light.theme).sort());
   });
 
-  test("mosaic-dark is actually darker", () => {
-    const light = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic.json"), "utf8"));
-    const dark = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic-dark.json"), "utf8"));
-    const sum = (hex: string) => [1, 3, 5].reduce((n, i) => n + parseInt(hex.slice(i, i + 2), 16), 0);
-    expect(sum(dark.defs.midnight)).toBeLessThan(sum(light.defs.midnight));
+  test("the two themes are distinct grounds, not copies of each other", () => {
+    const light = read("mosaic-light.json");
+    const dark = read("mosaic-dark.json");
+    expect(dark.theme.background!.dark).not.toBe(light.theme.background!.dark);
   });
 
-  test("every mosaic-dark reference resolves", () => {
-    const t = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic-dark.json"), "utf8"));
-    for (const value of Object.values(t.theme) as Array<{ dark: string; light: string }>) {
-      for (const v of [value.dark, value.light]) {
-        expect(/^#[0-9a-fA-F]{6}$/.test(v) || v in t.defs, v).toBe(true);
+  test("every reference in every theme resolves", () => {
+    for (const name of ["mosaic-light.json", "mosaic-dark.json"]) {
+      const t = read(name);
+      for (const value of Object.values(t.theme)) {
+        for (const v of [value.dark, value.light]) {
+          expect(/^#[0-9a-fA-F]{6}$/.test(v) || v in t.defs, `${name}: ${v}`).toBe(true);
+        }
       }
     }
   });

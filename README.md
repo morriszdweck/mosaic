@@ -280,11 +280,11 @@ need the expensive model.
 
 ## Theme
 
-Mosaic ships two themes and uses `mosaic` by default in place of the engine's
-own: deep navy grounds with a light-blue accent, in light and dark variants.
-`mosaic-dark` goes deeper and bluer for low-light terminals — a darker ground
-with the accent lifted so it still reads against it, rather than the same colours
-dimmed toward grey.
+Mosaic ships two themes and uses `mosaic-light` by default in place of the
+engine's own: deep navy grounds with a light-blue accent. `mosaic-dark` is
+Night Owl — the low-light classic, with its deep `#011627` ground and lifted
+purple-and-blue accents — renamed into the catalog so both of Mosaic's themes
+read as a pair.
 
 Switch with `/theme`; the choice is kept across launches.
 The other built-in themes are still there — `/theme` to switch, or set `theme`
@@ -364,7 +364,7 @@ src/plugin/checkpoint/     file snapshots and rollback
 src/plugin/hooks/          loads ~/.mosaic/hooks/*.ts
 src/plugin/keypool/        rotates several keys for one provider
 skills/                    skills Mosaic ships
-themes/                    mosaic and mosaic-dark
+themes/                    mosaic-light and mosaic-dark (Night Owl)
 src/swarm.ts               syncs Swarm's agents into Mosaic's config
 agents/                    Mosaic's general-purpose Agent Swarm definitions
 skills/agent-swarm/        the Agent Swarm skill

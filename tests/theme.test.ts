@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildTuiConfig } from "../src/config.ts";
 
-const theme = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic.json"), "utf8")) as {
+const theme = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic-light.json"), "utf8")) as {
   defs: Record<string, string>;
   theme: Record<string, string | { dark: string; light: string }>;
 };
@@ -19,7 +19,7 @@ function resolve(value: string): string | null {
 describe("mosaic theme", () => {
   test("is the default, replacing the engine's own", () => {
     // The engine's built-in default is "opencode".
-    expect(buildTuiConfig("/opt/mosaic").theme).toBe("mosaic");
+    expect(buildTuiConfig("/opt/mosaic").theme).toBe("mosaic-light");
   });
 
   test("every def is a valid hex colour", () => {
@@ -89,28 +89,38 @@ describe("mosaic theme", () => {
 describe("mosaic-dark", () => {
   const dark = JSON.parse(readFileSync(join(import.meta.dir, "..", "themes", "mosaic-dark.json"), "utf8")) as {
     defs: Record<string, string>;
+    theme: Record<string, string | { dark: string; light: string }>;
   };
-  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+  const lum = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
+    const f = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const resolve = (value: string): string | null => (HEX.test(value) ? value : (dark.defs[value] ?? null));
 
-  test("is visibly darker than mosaic, not a near-copy", () => {
-    const a = rgb(theme.defs.midnight!).reduce((x, y) => x + y);
-    const b = rgb(dark.defs.midnight!).reduce((x, y) => x + y);
-    // A variant nobody can tell apart is not a variant.
-    expect(b).toBeLessThan(a * 0.75);
+  test("is Night Owl: the palette's signature colours are pinned", () => {
+    // The old navy variant was retired in favour of Night Owl; pin its ground
+    // and accent so a stray edit cannot silently undo the rename.
+    expect(dark.defs.nightOwlBg).toBe("#011627");
+    expect(dark.defs.nightOwlFg).toBe("#d6deeb");
+    expect(dark.defs.nightOwlPurple).toBe("#c792ea");
+    expect(dark.defs.nightOwlBlue).toBe("#82AAFF");
   });
 
-  test("stays blue rather than desaturating to black", () => {
-    // Dropping lightness by pulling every channel down turns navy into grey.
-    for (const key of ["midnight", "deepBlue", "slateBlue", "steel"]) {
-      const [r, g, b] = rgb(dark.defs[key]!);
-      expect(b, `${key} blue vs red`).toBeGreaterThan(r + 10);
-      expect(b, `${key} blue vs green`).toBeGreaterThan(g);
+  test("every reference resolves to a real colour", () => {
+    for (const [key, value] of Object.entries(dark.theme)) {
+      const variants = typeof value === "string" ? [value] : [value.dark, value.light];
+      for (const variant of variants) {
+        expect(resolve(variant), `${key} → ${variant}`).not.toBeNull();
+      }
     }
   });
 
-  test("its accent is lifted so it still reads against the deeper ground", () => {
-    const lift = (hex: string) => rgb(hex).reduce((x, y) => x + y);
-    expect(lift(dark.defs.sky!)).toBeGreaterThan(lift(theme.defs.sky!));
+  test("text stays readable against the background", () => {
+    const bg = resolve((dark.theme.background as { dark: string }).dark)!;
+    const fg = resolve((dark.theme.text as { dark: string }).dark)!;
+    const contrast = (Math.max(lum(bg), lum(fg)) + 0.05) / (Math.min(lum(bg), lum(fg)) + 0.05);
+    expect(contrast).toBeGreaterThan(7);
   });
 });
 

@@ -101,9 +101,9 @@ jobs:
         run: |
           export MOSAIC_HOME="$RUNNER_TEMP/mosaic-ci"
           bun run src/swarm.ts
-          test -f "$MOSAIC_HOME/config/opencode/themes/mosaic.json"
+          test -f "$MOSAIC_HOME/config/opencode/themes/mosaic-light.json"
           test -f "$MOSAIC_HOME/config/opencode/themes/mosaic-dark.json"
-          grep -q '"theme": "mosaic"' "$MOSAIC_HOME/config/opencode/tui.json"
+          grep -q '"theme": "mosaic-light"' "$MOSAIC_HOME/config/opencode/tui.json"
           # A theme the user picks must survive the next launch; the launcher
           # rewriting tui.json wholesale used to revert it every time.
           python3 - "$MOSAIC_HOME/config/opencode/tui.json" <<'PY'
