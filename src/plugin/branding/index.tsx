@@ -42,7 +42,7 @@ const tui: TuiPlugin = async (api) => {
             {WORDMARK.map((line) => (
               <text fg={api.theme.current.primary}>{line}</text>
             ))}
-            <text fg={api.theme.current.textMuted}>general-purpose agent</text>
+            <text fg={api.theme.current.textMuted}>think in pieces. act as one.</text>
           </box>
         );
       },

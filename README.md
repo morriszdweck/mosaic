@@ -1,12 +1,19 @@
 # Mosaic
 
-A general-purpose AI agent for the terminal, built on the
-[OpenCode](https://github.com/sst/opencode) engine.
+**Think in pieces. Act as one.**
 
-OpenCode is an excellent coding agent. Mosaic keeps its engine — the TUI, agent
-loop, tool system, and provider stack — and changes what it is *for*: research,
-writing, analysis, and system work are first-class, with coding as one capable
-subagent rather than the whole point.
+Mosaic is a terminal workspace for work that does not fit in one box: research,
+writing, analysis, code, and the messy work between them. It remembers how you
+work, can return to a task later, and can turn a genuinely wide problem into a
+coordinated team of specialists.
+
+It is for people who want one capable collaborator in the terminal — not a
+coding tool pretending every problem is a repository.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh | bash
+mosaic
+```
 
 Mosaic adds:
 
@@ -14,8 +21,8 @@ Mosaic adds:
   `writer`, `analyst`, and `coder` subagents, each with its own prompt.
 - **Persistent memory** — facts that survive across conversations, recalled by
   relevance and injected under a strict token budget.
-- **Its own state** — config, sessions, and credentials live in `~/.mosaic`, so
-  Mosaic and OpenCode can coexist without touching each other.
+- **A separate workspace** — config, sessions, and credentials live in
+  `~/.mosaic`, separate from other terminal agents.
 - **Agent Swarm** — an orchestrator that decomposes a task and runs specialists
   in parallel, installed with Mosaic.
 - **Scheduled tasks** — the agent can schedule a prompt to come back to itself
@@ -23,8 +30,8 @@ Mosaic adds:
 - **First-launch setup** — pick a model in one keypress, including a free one
   that needs no account or card.
 - **Personality** — a `SOUL.md` that shapes tone and standing preferences.
-- **Its own face** — Mosaic's wordmark and example prompts replace the engine's,
-  through its TUI slot API rather than by forking the interface.
+- **A point of view** — Mosaic starts from questions, plans, evidence, and
+  drafts; code is there when it is the right tool.
 
 ## Install
 
@@ -44,9 +51,20 @@ mosaic                # start the TUI
 mosaic run "..."      # one-shot, no TUI
 ```
 
-Mosaic is bring-your-own-key and inherits the engine's provider support —
-Anthropic, OpenAI, OpenRouter, Groq, local models via Ollama or LM Studio, and
-anything else it speaks. `mosaic models` lists what is available.
+Try one of these:
+
+```text
+Summarise these three papers and tell me where they disagree.
+Plan this migration, then list the risks I should decide on.
+Read this CSV and explain what it actually measures.
+Split this launch plan among the right specialists and bring me one answer.
+```
+
+Mosaic works with the keys and local models you already use — Anthropic, OpenAI,
+OpenRouter, Groq, Ollama, LM Studio, and anything else its provider stack
+supports. It also offers a free first-launch option with no account; availability
+varies, so use your own provider for work that cannot wait. `mosaic models`
+lists what is available.
 
 ## Agents
 
@@ -87,8 +105,9 @@ Memories are scoped: `user` and `preference` facts apply everywhere, while
 
 ## Agent Swarm
 
-For work with several independent pieces, `swarm` decomposes the task and runs
-specialists in parallel rather than doing it one step at a time:
+When a task has real independent parts, `swarm` turns Mosaic into a small,
+coordinated team. It decomposes the work, starts the right specialists in
+parallel, and returns one considered answer rather than a pile of transcripts:
 
 ```
 Tab → swarm     (or /swarm)
@@ -108,15 +127,13 @@ fires the independent ones together, and synthesises the results. Specialists:
 | `optimizer` | Makes something smaller, faster, cheaper, or clearer. |
 | `uiux-designer` | How the result is presented and structured. |
 
-Upstream swarm is written for coding work. Mosaic ships general versions of the
-same roles — a reviewer that checks an argument as readily as a diff, an
-optimizer that tightens a process as readily as a hot loop — and layers them
-over the vendored copy, which stays untouched so re-fetching it is safe.
+Mosaic's specialists are general by design: the reviewer checks an argument as
+readily as a diff, and the optimizer tightens a process as readily as a hot
+loop.
 
-Agent Swarm builds on [opencode-swarm](https://github.com/morriszdweck/opencode-swarm),
-fetched by the installer into `vendor/swarm` and synced into Mosaic's own agent
-directory on each launch. Its own installer targets `~/.config/opencode`, which
-is the OpenCode install Mosaic keeps out of — this route keeps that separation.
+Agent Swarm is installed with Mosaic and kept in Mosaic's own configuration.
+Mosaic layers its general-purpose specialists over the upstream swarm roles,
+without overwriting specialist files you already own.
 
 Those five names are effectively reserved. If you already have an agent with one
 of them, Mosaic keeps yours and says so rather than overwriting it; the rest
@@ -210,11 +227,13 @@ up for `opencode.json` and `.opencode/`, which meant an OpenCode user's
 providers appeared inside Mosaic; that discovery is turned off and replaced with
 `.mosaic/config.json` and `mosaic.json`.
 
-## Relationship to OpenCode
+## Engine and attribution
 
-Mosaic does not fork or vendor OpenCode. It depends on the published
-`opencode-ai` package and configures it, which means upstream fixes and features
-arrive with a version bump rather than a merge.
+Mosaic runs on the published [OpenCode](https://github.com/sst/opencode) engine.
+It keeps the engine's terminal interface, agent loop, tool system, and provider
+stack while owning its experience: its prompts, agents, memory, scheduling,
+setup, configuration, and visual identity. Mosaic does not fork or vendor the
+engine, so upstream fixes arrive with a version bump rather than a merge.
 
 What lives in this repository is the part that makes it Mosaic: the launcher,
 the agent definitions and prompts, the memory plugin, and the installer.
