@@ -57,7 +57,7 @@ export async function headless(options: {
     }
     process.stdout.write("\n");
 
-    for (const m of runtime.agent.messages) await sessions.appendMessage(session.id, m);
+    await sessions.replaceTranscript(session.id, runtime.agent.messages);
     const totals = runtime.agent.meter.totals();
     status(
       `done — ${totals.inputTokens} in / ${totals.outputTokens} out` +

@@ -170,8 +170,7 @@ export class SessionStore {
       model: source.model,
       parentId: id,
     });
-    const transcript = await this.readTranscript(id);
-    for (const message of transcript) await this.appendMessage(fork.id, message);
+    await this.replaceTranscript(fork.id, await this.readTranscript(id));
     return fork;
   }
 
@@ -180,8 +179,7 @@ export class SessionStore {
     const transcript = await this.readTranscript(id);
     const keep = Math.max(0, transcript.length - messagesToDrop);
     const kept = transcript.slice(0, keep);
-    await writeFile(this.transcriptPath(id), "");
-    for (const message of kept) await this.appendMessage(id, message);
+    await this.replaceTranscript(id, kept);
     return transcript.length - kept.length;
   }
 
