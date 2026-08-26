@@ -11,6 +11,8 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { AGENTS } from "./agents.ts";
+import { PLUGINS_COMMAND } from "./plugins.ts";
+import { pluginEntries } from "./plugin/package.ts";
 
 const ROOT = process.env.MOSAIC_ROOT ?? resolve(import.meta.dir, "..");
 const MOSAIC_HOME = process.env.MOSAIC_HOME ?? join(homedir(), ".mosaic");
@@ -30,6 +32,7 @@ export interface MosaicConfig {
   plugin?: string[];
   agent?: Record<string, unknown>;
   provider?: Record<string, unknown>;
+  command?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -69,9 +72,11 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
       join(root, "src", "plugin", "checkpoint", "index.ts"),
       join(root, "src", "plugin", "hooks", "index.ts"),
       join(root, "src", "plugin", "keypool", "index.ts"),
+      ...pluginEntries(home),
     ],
 
     provider: PROVIDER_LABELS,
+    command: PLUGINS_COMMAND,
 
     // Skills are the engine's own feature and it discovers them itself, under
     // the XDG directories the launcher already points at $MOSAIC_HOME.
@@ -208,6 +213,7 @@ export function mergeConfig(base: MosaicConfig, over: MosaicConfig): MosaicConfi
     plugin: [...(base.plugin ?? []), ...(over.plugin ?? [])],
     agent: { ...(base.agent ?? {}), ...(over.agent ?? {}) },
     provider: { ...(base.provider ?? {}), ...(over.provider ?? {}) },
+    command: { ...(base.command ?? {}), ...(over.command ?? {}) },
   };
 }
 

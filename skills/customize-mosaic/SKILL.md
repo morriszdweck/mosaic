@@ -24,6 +24,7 @@ Mosaic.
 | Themes | `~/.mosaic/config/opencode/themes/<name>.json` |
 | Interface settings | `~/.mosaic/config/opencode/tui.json` |
 | Memory | `~/.mosaic/memory.db` |
+| Plugins | `~/.mosaic/plugins/<name>` |
 | Generated config | `~/.mosaic/mosaic.json` — **rewritten every launch, never edit** |
 
 ## config.json
@@ -65,6 +66,18 @@ Mosaic rather than replacing what it ships.
 `tui.json` is not `config.json`, and only `tui.json` loads a plugin's interface
 half. A plugin that draws something must be listed there or it is accepted,
 reported as loaded, and silently never drawn.
+
+## Plugins
+
+A Mosaic plugin is a GitHub repository that bundles one capability: skills, tools, or both. Install one with the shell command below, or open its repository, copy the **Install with Mosaic** prompt, and paste that prompt into an agent:
+
+```sh
+mosaic plugins install https://github.com/OWNER/REPOSITORY
+```
+
+Mosaic validates `mosaic-plugin.json`, keeps the package under `~/.mosaic/plugins`, loads tool entrypoints on the next start, and syncs bundled skills into Mosaic's skill directory. Use `mosaic plugins list` to inspect installed packages. Never copy a plugin into `~/.config/opencode`; that directory belongs to a separate OpenCode install.
+
+The built-in `plugin-creator` skill can scaffold a plugin repository, including its manifest, README, bundled skills or tools, and the copyable installation prompt.
 
 ## The engine's own skill
 
