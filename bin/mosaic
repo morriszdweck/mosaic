@@ -29,6 +29,10 @@ export XDG_CACHE_HOME="$MOSAIC_HOME/cache"
 export XDG_STATE_HOME="$MOSAIC_HOME/state"
 mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
+if [ -d "$HOME/.kimi-webbridge/bin" ]; then
+  export PATH="$HOME/.kimi-webbridge/bin:$PATH"
+fi
+
 # Mosaic's config is generated rather than shipped, because it has to carry
 # absolute paths to the plugin and prompt files inside this install.
 export OPENCODE_CONFIG="${MOSAIC_CONFIG:-$MOSAIC_HOME/mosaic.json}"
