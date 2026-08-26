@@ -72,6 +72,13 @@ case "${1:-}" in
     shift
     MOSAIC_ROOT="$ROOT" exec bun run "$ROOT/src/setup/index.ts" --force "$@"
     ;;
+  tasks)
+    # Standalone scheduled tasks. Also the entry point the OS scheduler calls,
+    # so it must work with no terminal and without the first-launch prompt
+    # below ever running.
+    shift
+    MOSAIC_ROOT="$ROOT" exec bun run "$ROOT/src/tasks.ts" "$@"
+    ;;
   --version | -v)
     # Report Mosaic's version, not the engine's — but name the engine, because
     # the answer to "what am I running" has to include it.

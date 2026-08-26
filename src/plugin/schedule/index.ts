@@ -1,5 +1,6 @@
 import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin";
+import { install, isInstalled } from "./installer.ts";
 import { describeWhen, parseWhen, TaskStore } from "./store.ts";
 
 /**
@@ -11,15 +12,18 @@ import { describeWhen, parseWhen, TaskStore } from "./store.ts";
  * than in a fresh context that has to be re-briefed.
  *
  * The timer lives here, in the server process, and only fires for sessions it
- * has seen — which is what binds a task to its session. A task therefore fires
- * only while Mosaic is running; that limit is stated in the tool description
- * rather than papered over, because an agent that promises a 3am reminder from
- * a closed laptop is worse than one that says it cannot.
+ * has seen — which is what binds a task to its session.
+ *
+ * A **standalone** task has no such binding. It is registered with the
+ * operating system's scheduler, and each run starts a fresh Mosaic session in
+ * the directory it was created in. That is what "every weekday at 08:00" has to
+ * mean: a briefing that only arrives when you already have the app open is not
+ * a briefing. Those are run by src/plugin/schedule/runner.ts, out of process.
  */
 
 const POLL_MS = 15_000;
 
-export const SchedulePlugin: Plugin = async ({ client }) => {
+export const SchedulePlugin: Plugin = async ({ client, directory }) => {
   const store = new TaskStore();
   /** Sessions seen this run — the only ones we may submit into. */
   const live = new Set<string>();
@@ -132,26 +136,48 @@ export const SchedulePlugin: Plugin = async ({ client }) => {
 
       schedule: tool({
         description: [
-          "Schedule a prompt to be sent back to you later, in this conversation.",
+          "Schedule a prompt to run later. Two scopes, and picking the right one",
+          "is the whole decision:",
           "",
-          "When it fires you receive it as a normal message, with this conversation",
-          "already in context — so schedule the instruction, not a re-explanation.",
+          "scope 'session' (default) — the prompt comes back to you in THIS",
+          "conversation, with everything currently in context. Use it for the rest",
+          "of what you are doing now: 'check the build again in 10m'. It only",
+          "fires while this conversation stays open.",
           "",
-          "Only fires while Mosaic is running. If the user needs something to happen",
-          "whether or not Mosaic is open, tell them to use cron with `mosaic run`",
-          "instead of scheduling it here.",
+          "scope 'standalone' — the prompt runs whether or not Mosaic is open,",
+          "started by the operating system's scheduler, in a NEW session in this",
+          "directory. Use it for anything on a clock the user expects to keep:",
+          "'every weekday at 08:00', 'every Monday at 17:00', 'every day at 09:00'.",
+          "It survives quitting Mosaic and rebooting. Because it starts fresh, the",
+          "prompt has to stand alone — write it as if to someone who was not here",
+          "for this conversation, naming the files, paths, and criteria in full.",
           "",
-          "add: when = 'in 10m', 'every 2h', 'at 14:30'",
-          "list: pending tasks for this conversation",
+          "If the user says 'every morning', 'daily', 'each week', or gives a time",
+          "of day, they mean standalone. A recurring task that quietly stops the",
+          "moment the app closes is worse than telling them it cannot be done.",
+          "",
+          "add: when = 'in 10m', 'every 2h', 'at 14:30', 'every day at 09:00',",
+          "  'every weekday at 08:30', 'every monday at 17:00'",
+          "list: pending tasks — this conversation's, and this directory's standing ones",
           "cancel: by id",
         ].join("\n"),
         args: {
           action: tool.schema.enum(["add", "list", "cancel"]),
-          when: tool.schema.string().optional().describe("For add: 'in 10m', 'every 2h', 'at 14:30'"),
+          when: tool.schema
+            .string()
+            .optional()
+            .describe("For add: 'in 10m', 'every 2h', 'at 14:30', 'every day at 09:00', 'every weekday at 08:30'"),
           prompt: tool.schema
             .string()
             .optional()
-            .describe("For add: what to send yourself. Write it as an instruction to act on."),
+            .describe("For add: what to run. Write it as an instruction to act on."),
+          scope: tool.schema
+            .enum(["session", "standalone"])
+            .optional()
+            .describe(
+              "'session' (default) fires into this conversation while it is open. " +
+                "'standalone' runs in a new session whether or not Mosaic is open — use it for anything daily or weekly.",
+            ),
           id: tool.schema.number().optional().describe("For cancel."),
         },
         async execute(args, context) {
@@ -166,20 +192,55 @@ export const SchedulePlugin: Plugin = async ({ client }) => {
               } catch (error) {
                 return error instanceof Error ? error.message : String(error);
               }
+
+              const standalone = args.scope === "standalone";
               const task = store.add({
-                sessionID: context.sessionID,
+                sessionID: standalone ? "" : context.sessionID,
+                scope: standalone ? "standalone" : "session",
+                directory: standalone ? directory : "",
                 prompt: args.prompt,
                 dueAt: parsed.dueAt,
                 repeat: parsed.repeat,
+                recurrence: parsed.recurrence ?? null,
                 when: args.when,
               });
-              return `Scheduled [${task.id}] ${describeWhen(task)}: ${task.prompt}`;
+              if (!standalone) return `Scheduled [${task.id}] ${describeWhen(task)}: ${task.prompt}`;
+
+              // Register with the OS scheduler on first use rather than as a
+              // setup step. If that fails, say so — a standing task nobody is
+              // going to run is worse than an error.
+              const lines = [`Scheduled [${task.id}] ${describeWhen(task)}, in ${directory}.`];
+              if (!isInstalled()) {
+                const result = install();
+                lines.push(result.ok ? result.message : `Could not register with the OS scheduler: ${result.message}`);
+              }
+              lines.push("It runs in its own session, whether or not Mosaic is open.");
+              return lines.join("\n");
             }
 
             case "list": {
-              const tasks = store.list(context.sessionID);
-              if (!tasks.length) return "Nothing scheduled in this conversation.";
-              return tasks.map((t) => `[${t.id}] ${describeWhen(t)} — ${t.prompt}`).join("\n");
+              const mine = store.list(context.sessionID);
+              const standing = store.listStandalone(directory);
+              if (!mine.length && !standing.length) return "Nothing scheduled here.";
+              const sections: string[] = [];
+              if (mine.length) {
+                sections.push(
+                  ["In this conversation:", ...mine.map((t) => `[${t.id}] ${describeWhen(t)} — ${t.prompt}`)].join("\n"),
+                );
+              }
+              if (standing.length) {
+                sections.push(
+                  [
+                    "Standing, in this directory (run whether or not Mosaic is open):",
+                    ...standing.map(
+                      (t) =>
+                        `[${t.id}] ${t.when} (${describeWhen(t)}) — ${t.prompt.split("\n")[0]}` +
+                        (t.lastStatus ? ` — last run ${t.lastStatus}` : ""),
+                    ),
+                  ].join("\n"),
+                );
+              }
+              return sections.join("\n\n");
             }
 
             case "cancel": {

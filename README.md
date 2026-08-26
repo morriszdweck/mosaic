@@ -26,7 +26,8 @@ Mosaic adds:
 - **Agent Swarm** — an orchestrator that decomposes a task and runs specialists
   in parallel, installed with Mosaic.
 - **Scheduled tasks** — the agent can schedule a prompt to come back to itself
-  later, in the same conversation.
+  later in the same conversation, or as a standing task that runs on the clock
+  whether or not Mosaic is open.
 - **First-launch setup** — pick a model in one keypress, including a free one
   that needs no account or card.
 - **Personality** — a `SOUL.md` that shapes tone and standing preferences.
@@ -156,30 +157,71 @@ that on work with genuinely independent pieces, not on a one-line edit.
 
 ## Scheduled tasks
 
-Ask for something later and the agent schedules it itself:
+Ask for something later and the agent schedules it itself. There are two kinds,
+and the difference is what the task is bound to.
+
+**In this conversation.** For the rest of what you are doing right now:
 
 > *"Check the build again in ten minutes and tell me if it's still failing."*
 
-It calls a `schedule` tool, and when the time comes the prompt is submitted as a
-real message **in the same conversation**. The follow-up run therefore starts
-with the context it was planning against — no re-briefing, and no fresh session
-that has to be told what the task was about.
+The prompt is submitted as a real message **in the same conversation**, so the
+follow-up starts with the context it was planning against — no re-briefing, and
+no fresh session that has to be told what the task was about. It fires while
+that conversation is open.
+
+**On the clock, whether or not Mosaic is open.** For anything standing:
+
+> *"Every weekday at eight, summarise what changed in this repo overnight."*
+
+This one is bound to nothing. It is registered with the operating system's
+scheduler — launchd on macOS, a systemd user timer or crontab on Linux — and
+each run starts a fresh Mosaic session in the directory the task was created in.
+It survives quitting Mosaic, logging out, and rebooting. That is what "every
+weekday at eight" has to mean: a briefing that only arrives when you already
+have the app open is not a briefing.
+
+The agent picks the scope. A time of day, "daily", "every Monday" — anything on
+a clock — becomes a standing task; "in ten minutes, while we're working on this"
+stays in the conversation.
 
 ```
-schedule add     when = "in 10m", "every 2h", "at 14:30"
-schedule list    what is pending here
+schedule add     when = "in 10m", "every 2h", "at 14:30",
+                        "every day at 09:00", "every weekday at 08:30",
+                        "every monday at 17:00"
+schedule list    pending here — this conversation's, and this directory's
 schedule cancel  by id
 ```
 
-A repeat reschedules from when it fires, not from the time it missed, so a
-Mosaic that was closed for a week does not come back and fire the same task a
-hundred times catching up.
+Standing tasks are also yours from the shell, without opening the conversation
+that created them:
 
-**It only fires while Mosaic is running.** Tasks are bound to a live session —
-that is what makes them arrive in context. For something that must happen
-whether or not Mosaic is open, use cron with `mosaic run`. The tool description
-says this too, so the agent offers cron instead of promising a 3am reminder from
-a closed laptop.
+```sh
+mosaic tasks                                  # what is standing, and how the last run went
+mosaic tasks add "every day at 09:00" "..."   # schedule one directly
+mosaic tasks run 3                            # try one now, without using up its next turn
+mosaic tasks log 3                            # what the last run produced
+mosaic tasks cancel 3
+mosaic tasks status                           # whether the OS scheduler actually knows about Mosaic
+```
+
+One entry is registered with the OS, not one per task: it wakes each minute,
+asks the task database what is due, and exits. Nothing stays resident. Adding a
+task therefore never has to negotiate with the scheduler again, and the entry is
+installed the first time you create a standing task rather than as a setup step.
+If it cannot be installed, Mosaic says so — a standing task nobody is going to
+run is worse than an error.
+
+Two rules keep a machine that was asleep from behaving badly. A repeat is
+advanced to its next occurrence *after now*, so a Mosaic that was closed for a
+week comes back to one due run rather than a hundred. And a run whose next
+occurrence is already due is skipped rather than run late — otherwise
+yesterday's 09:00 briefing arrives just before today's.
+
+Times are calendar-anchored, not interval arithmetic: "09:00" stays 09:00 across
+a late run and across both DST changes.
+
+If you would rather wire `mosaic tasks run-due` into your own cron or CI, set
+`MOSAIC_TASKS_SCHEDULER=none` and Mosaic will not touch launchd or crontab.
 
 ## Watching, and changing itself
 
@@ -359,12 +401,16 @@ src/agents.ts              agent definitions
 src/plugin/memory/         the memory tool and its recall hook
 src/plugin/branding/       wordmark and example prompts, via TUI slots
 src/plugin/schedule/       the schedule and heartbeat tools
+  when.ts                    reading "every weekday at 08:30"
+  runner.ts                  runs standing tasks, out of process
+  installer.ts               registers Mosaic with launchd/systemd/cron
 src/plugin/evolve/         the soul and skill tools
 src/plugin/checkpoint/     file snapshots and rollback
 src/plugin/hooks/          loads ~/.mosaic/hooks/*.ts
 src/plugin/keypool/        rotates several keys for one provider
 skills/                    skills Mosaic ships
 themes/                    mosaic-light and mosaic-dark (Night Owl)
+src/tasks.ts               `mosaic tasks` — standing tasks from the shell
 src/swarm.ts               syncs Swarm's agents into Mosaic's config
 agents/                    Mosaic's general-purpose Agent Swarm definitions
 skills/agent-swarm/        the Agent Swarm skill

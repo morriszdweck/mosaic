@@ -31,8 +31,12 @@ exit on "nothing changed" costs almost nothing most of the time.
 Pick the interval from how fast the thing actually changes. A build that takes
 eight minutes does not want a one-minute heartbeat.
 
-It only runs while Mosaic is open. If the user needs something to happen whether
-or not Mosaic is running, say so and suggest cron with `mosaic run`.
+A heartbeat only runs while Mosaic is open. If the user needs something to
+happen whether or not Mosaic is running — every morning, every Monday, any time
+of day — that is `schedule` with `scope: "standalone"`, not a heartbeat. Those
+are registered with the OS scheduler and run in their own session, so write the
+prompt to stand alone: name the files, paths, and criteria in full, because
+nothing from this conversation comes with it.
 
 Stop it when the reason for it is gone. Do not leave a heartbeat running past
 the task that justified it.

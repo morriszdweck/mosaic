@@ -50,6 +50,7 @@ const TIPS = [
   "Tab switches agents — swarm splits a task across specialists",
   "@ pulls a file into the conversation",
   "Ask me to keep checking something and I'll start a heartbeat",
+  "\"Every weekday at 8, brief me\" — standing tasks run with Mosaic closed",
   "/theme to switch between mosaic-light and mosaic-dark",
   "Tell me how you like things and I'll remember it",
   "! runs a shell command inline",

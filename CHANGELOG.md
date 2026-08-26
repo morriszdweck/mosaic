@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.10.0
+
+- Standing scheduled tasks: `schedule` with scope `standalone` registers a task
+  with the operating system — launchd, a systemd user timer, or crontab — so
+  "every weekday at 08:00" runs in its own session whether or not Mosaic is
+  open, across quits and reboots.
+- Calendar recurrences: "every day at 09:00", "every weekday at 08:30", "every
+  monday at 17:00", "every mon and thu at 9am". Resolved against the local clock
+  each time, so a wall time survives a late run and both DST changes.
+- `mosaic tasks` lists, adds, runs, cancels, and shows the output of standing
+  tasks from the shell, and reports when the OS scheduler has no Mosaic entry so
+  a task that will never fire cannot look scheduled.
+- A run whose next occurrence is already due is skipped rather than run late, so
+  a machine that was asleep does not deliver yesterday's briefing just before
+  today's.
+- `MOSAIC_TASKS_SCHEDULER=none` for anyone who would rather wire
+  `mosaic tasks run-due` into their own cron.
+
 ## 0.9.0
 
 - Checkpoints: file contents are captured before the agent's first write in a

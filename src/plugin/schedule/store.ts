@@ -2,37 +2,74 @@ import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { nextOccurrence } from "./when.ts";
 
 /**
  * Scheduled tasks.
  *
- * A task is a prompt the agent asked to be given back to itself later, in the
- * session it was scheduled from. When it fires it arrives the same way a typed
- * message would, so the agent already has the conversation it was planning
- * against — no re-explaining what the task was for.
+ * Two kinds, and the difference is what they are bound to:
  *
- * That binding to a session is also the limit: a task can only fire while
- * Mosaic is running. Anything that must survive a restart belongs in cron
- * calling `mosaic run`.
+ * - A **session** task is a prompt the agent asked to be given back to itself
+ *   later, in the conversation it was scheduled from. It arrives the same way a
+ *   typed message would, so the agent already has the context it was planning
+ *   against. It can only fire while that conversation is open.
+ *
+ * - A **standalone** task is bound to nothing. It lives in this database, an OS
+ *   scheduler wakes Mosaic for it, and each run starts a fresh session in the
+ *   directory the task was created in. It survives quitting Mosaic, logging
+ *   out, and rebooting — which is the whole point of it.
+ *
+ * Standalone is what "every weekday at 08:00" has to mean. A daily briefing
+ * that only happens when you already have the app open is not a daily briefing.
  */
+
+export type Scope = "session" | "standalone";
+
+/**
+ * How a task repeats.
+ *
+ * Intervals cannot express "every day at 09:00": 86400 seconds from the last
+ * run drifts as soon as one run is late, and drifts an hour twice a year on
+ * DST. Calendar recurrences are resolved against the local clock each time
+ * instead, so 09:00 stays 09:00.
+ */
+export type Recurrence =
+  | { kind: "interval"; seconds: number }
+  /** `minute` is minutes since local midnight. */
+  | { kind: "daily"; minute: number }
+  /** `days` are local weekday numbers, 0 = Sunday. */
+  | { kind: "weekly"; minute: number; days: number[] };
 
 export interface Task {
   id: number;
+  /** Empty for standalone tasks — they belong to no conversation. */
   sessionID: string;
+  scope: Scope;
+  /** Working directory a standalone run happens in. */
+  directory: string;
   /** A heartbeat is a standing check rather than a one-off reminder. */
   heartbeat: boolean;
   prompt: string;
   /** Epoch millis of the next fire. */
   dueAt: number;
-  /** Seconds between repeats, or null for one-shot. */
+  /** Seconds between repeats, or null for one-shot. Interval recurrences only. */
   repeat: number | null;
+  /** Calendar recurrence, when the repeat is not a fixed interval. */
+  recurrence: Recurrence | null;
   /** Human text the user gave, kept for listings. */
   when: string;
   fired: number;
   createdAt: number;
   /** Set once a one-shot has fired, so it is not re-run. */
   done: boolean;
+  lastRunAt: number | null;
+  lastStatus: "ok" | "failed" | null;
+  /** Tail of the last run's output, so `mosaic tasks` can show what happened. */
+  lastOutput: string | null;
 }
+
+/** Output kept per run. Enough to see what happened, not a transcript store. */
+const OUTPUT_LIMIT = 4000;
 
 export class TaskStore {
   private db: Database;
@@ -52,44 +89,92 @@ export class TaskStore {
         heartbeat INTEGER NOT NULL DEFAULT 0,
         fired INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
-        done INTEGER NOT NULL DEFAULT 0
+        done INTEGER NOT NULL DEFAULT 0,
+        scope TEXT NOT NULL DEFAULT 'session',
+        directory TEXT NOT NULL DEFAULT '',
+        recurrence TEXT,
+        last_run_at INTEGER,
+        last_status TEXT,
+        last_output TEXT
       );
       CREATE INDEX IF NOT EXISTS tasks_due ON tasks(due_at, done);
     `);
+    this.migrate();
+  }
+
+  /**
+   * Add columns to a table that already exists.
+   *
+   * `CREATE TABLE IF NOT EXISTS` is a no-op against an older database, so a new
+   * column in the definition above never appears and every query naming it
+   * fails at runtime. Anyone upgrading has a tasks.db from before standalone
+   * tasks existed.
+   */
+  private migrate(): void {
+    const columns = (this.db.prepare("PRAGMA table_info(tasks)").all() as Array<{ name: string }>).map((c) => c.name);
+    const add = (name: string, definition: string) => {
+      if (!columns.includes(name)) this.db.exec(`ALTER TABLE tasks ADD COLUMN ${name} ${definition}`);
+    };
+    add("scope", "TEXT NOT NULL DEFAULT 'session'");
+    add("directory", "TEXT NOT NULL DEFAULT ''");
+    add("recurrence", "TEXT");
+    add("last_run_at", "INTEGER");
+    add("last_status", "TEXT");
+    add("last_output", "TEXT");
   }
 
   add(input: {
-    sessionID: string;
+    sessionID?: string;
+    scope?: Scope;
+    directory?: string;
     prompt: string;
     dueAt: number;
     repeat?: number | null;
+    recurrence?: Recurrence | null;
     when: string;
     heartbeat?: boolean;
   }): Task {
     if (!input.prompt.trim()) throw new Error("A task needs a prompt.");
     if (input.repeat != null && input.repeat < 60) throw new Error("Repeat must be at least 60 seconds.");
+    const scope = input.scope ?? "session";
+    if (scope === "session" && !input.sessionID) throw new Error("A session task needs a session.");
     const row = this.db
       .prepare(
-        `INSERT INTO tasks (session_id, prompt, due_at, repeat, when_text, created_at, heartbeat)
-         VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+        `INSERT INTO tasks (session_id, prompt, due_at, repeat, when_text, created_at, heartbeat, scope, directory, recurrence)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
       )
       .get(
-        input.sessionID,
+        input.sessionID ?? "",
         input.prompt.trim(),
         input.dueAt,
         input.repeat ?? null,
         input.when,
         Date.now(),
         input.heartbeat ? 1 : 0,
+        scope,
+        input.directory ?? "",
+        input.recurrence ? JSON.stringify(input.recurrence) : null,
       ) as Record<string, unknown>;
     return toTask(row);
   }
 
-  /** Pending tasks, optionally for one session. */
+  /** Pending session tasks, optionally for one session. */
   list(sessionID?: string): Task[] {
     const rows = sessionID
-      ? this.db.prepare("SELECT * FROM tasks WHERE done = 0 AND session_id = ? ORDER BY due_at").all(sessionID)
-      : this.db.prepare("SELECT * FROM tasks WHERE done = 0 ORDER BY due_at").all();
+      ? this.db
+          .prepare("SELECT * FROM tasks WHERE done = 0 AND scope = 'session' AND session_id = ? ORDER BY due_at")
+          .all(sessionID)
+      : this.db.prepare("SELECT * FROM tasks WHERE done = 0 AND scope = 'session' ORDER BY due_at").all();
+    return (rows as Array<Record<string, unknown>>).map(toTask);
+  }
+
+  /** Pending standalone tasks, newest schedule first. Optionally one directory. */
+  listStandalone(directory?: string): Task[] {
+    const rows = directory
+      ? this.db
+          .prepare("SELECT * FROM tasks WHERE done = 0 AND scope = 'standalone' AND directory = ? ORDER BY due_at")
+          .all(directory)
+      : this.db.prepare("SELECT * FROM tasks WHERE done = 0 AND scope = 'standalone' ORDER BY due_at").all();
     return (rows as Array<Record<string, unknown>>).map(toTask);
   }
 
@@ -97,21 +182,37 @@ export class TaskStore {
     return this.list(sessionID).filter((t) => t.dueAt <= now);
   }
 
+  dueStandalone(now = Date.now()): Task[] {
+    return this.listStandalone().filter((t) => t.dueAt <= now);
+  }
+
   /**
    * Mark a task as having fired: reschedule a repeat, retire a one-shot.
    *
-   * Repeats advance from *now* rather than from the previous due time, so a
-   * Mosaic that was closed for a week does not come back and fire the same
-   * task a hundred times catching up.
+   * A repeating task is advanced to its next occurrence *after now*, never to a
+   * time already in the past. A Mosaic that was closed for a week therefore
+   * comes back to one due run, not to a hundred queued ones.
    */
   recordFired(id: number, now = Date.now()): void {
     const task = this.get(id);
     if (!task) return;
-    if (task.repeat === null) {
+    const next = nextOccurrence(task, now);
+    if (next === null) {
       this.db.prepare("UPDATE tasks SET fired = fired + 1, done = 1 WHERE id = ?").run(id);
       return;
     }
-    this.db.prepare("UPDATE tasks SET fired = fired + 1, due_at = ? WHERE id = ?").run(now + task.repeat * 1000, id);
+    this.db.prepare("UPDATE tasks SET fired = fired + 1, due_at = ? WHERE id = ?").run(next, id);
+  }
+
+  /** Store the outcome of a standalone run so a listing can show what happened. */
+  recordRun(id: number, status: "ok" | "failed", output: string, now = Date.now()): void {
+    const tail = output.length > OUTPUT_LIMIT ? output.slice(-OUTPUT_LIMIT) : output;
+    this.db.prepare("UPDATE tasks SET last_run_at = ?, last_status = ?, last_output = ? WHERE id = ?").run(
+      now,
+      status,
+      tail,
+      id,
+    );
   }
 
   get(id: number): Task | null {
@@ -143,17 +244,24 @@ export class TaskStore {
 }
 
 function toTask(row: Record<string, unknown>): Task {
+  const recurrence = row.recurrence as string | null;
   return {
     id: row.id as number,
     sessionID: row.session_id as string,
+    scope: ((row.scope as string) ?? "session") as Scope,
+    directory: (row.directory as string) ?? "",
     prompt: row.prompt as string,
     dueAt: row.due_at as number,
     repeat: (row.repeat as number | null) ?? null,
+    recurrence: recurrence ? (JSON.parse(recurrence) as Recurrence) : null,
     when: row.when_text as string,
     heartbeat: (row.heartbeat as number) === 1,
     fired: row.fired as number,
     createdAt: row.created_at as number,
     done: (row.done as number) === 1,
+    lastRunAt: (row.last_run_at as number | null) ?? null,
+    lastStatus: (row.last_status as "ok" | "failed" | null) ?? null,
+    lastOutput: (row.last_output as string | null) ?? null,
   };
 }
 
@@ -162,55 +270,7 @@ export function defaultPath(): string {
   return join(home, "tasks.db");
 }
 
-export interface ParsedWhen {
-  dueAt: number;
-  repeat: number | null;
-}
-
-/**
- * Parse the phrasings people actually use for "when".
- *
- * Kept small and predictable on purpose: a scheduler that guesses is worse
- * than one that says it did not understand. Anything richer should be an
- * explicit delay the agent computes itself.
- */
-export function parseWhen(text: string, now = Date.now()): ParsedWhen {
-  const raw = text.trim().toLowerCase();
-
-  const every = /^every\s+(\d+)\s*(s|sec|secs|seconds?|m|min|mins?|minutes?|h|hr|hrs?|hours?|d|days?)$/.exec(raw);
-  if (every) {
-    const seconds = toSeconds(Number(every[1]), every[2]!);
-    return { dueAt: now + seconds * 1000, repeat: seconds };
-  }
-
-  const relative = /^(?:in\s+)?(\d+)\s*(s|sec|secs|seconds?|m|min|mins?|minutes?|h|hr|hrs?|hours?|d|days?)$/.exec(raw);
-  if (relative) {
-    return { dueAt: now + toSeconds(Number(relative[1]), relative[2]!) * 1000, repeat: null };
-  }
-
-  // An absolute time today, rolling to tomorrow if it has already passed.
-  const at = /^(?:at\s+)?(\d{1,2}):(\d{2})$/.exec(raw);
-  if (at) {
-    const target = new Date(now);
-    target.setSeconds(0, 0);
-    target.setHours(Number(at[1]), Number(at[2]));
-    let due = target.getTime();
-    if (due <= now) due += 86_400_000;
-    return { dueAt: due, repeat: null };
-  }
-
-  throw new Error(`Cannot read "${text}". Use "in 10m", "every 2h", or "at 14:30".`);
-}
-
-function toSeconds(n: number, unit: string): number {
-  if (unit.startsWith("s")) return n;
-  if (unit.startsWith("m")) return n * 60;
-  if (unit.startsWith("h")) return n * 3600;
-  return n * 86400;
-}
-
-export function describeWhen(task: Task, now = Date.now()): string {
-  const secs = Math.max(0, Math.round((task.dueAt - now) / 1000));
-  const rel = secs < 60 ? `${secs}s` : secs < 3600 ? `${Math.round(secs / 60)}m` : `${Math.round(secs / 3600)}h`;
-  return task.repeat ? `in ${rel}, then every ${Math.round(task.repeat / 60)}m` : `in ${rel}`;
-}
+// Re-exported so callers have one import for a task and the language that
+// describes it.
+export { describeWhen, isStale, nextOccurrence, parseWhen } from "./when.ts";
+export type { ParsedWhen } from "./when.ts";
