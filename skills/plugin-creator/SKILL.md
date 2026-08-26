@@ -35,7 +35,8 @@ Create `mosaic-plugin.json` at the repository root:
 `entry` is optional. It points to a TypeScript module exporting an OpenCode
 server plugin. `skills` is optional. Each listed directory must contain a
 `SKILL.md` with valid skill frontmatter. A package must provide at least one of
-them.
+them. Do not use Mosaic's built-in skill names: `agent-swarm`,
+`customize-mosaic`, `customize-opencode`, `mosaic-self`, or `plugin-creator`.
 
 Tool plugins that import `@opencode-ai/plugin` should include a `package.json`
 with that dependency. Mosaic runs `bun install --production` while installing

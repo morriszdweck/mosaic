@@ -99,4 +99,44 @@ describe("Mosaic plugin sources", () => {
       await rm(home, { recursive: true, force: true });
     }
   });
+
+  test("does not discover a package with malformed skill frontmatter", async () => {
+    const home = await mkdtemp("/tmp/mosaic-plugin-test-");
+    const packageDirectory = join(pluginDirectory(home), "example-plugin");
+    const skillDirectory = join(packageDirectory, "skills", "example");
+    await mkdir(skillDirectory, { recursive: true });
+    await writeFile(join(packageDirectory, "mosaic-plugin.json"), JSON.stringify({
+      name: "example-plugin",
+      version: "0.1.0",
+      description: "An example plugin",
+      skills: ["skills/example"],
+    }));
+    await writeFile(join(skillDirectory, "SKILL.md"), "# Missing frontmatter\n");
+
+    try {
+      expect(installedPlugins(home)).toEqual([]);
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
+  test("does not discover a package that claims a built-in Mosaic skill name", async () => {
+    const home = await mkdtemp("/tmp/mosaic-plugin-test-");
+    const packageDirectory = join(pluginDirectory(home), "example-plugin");
+    const skillDirectory = join(packageDirectory, "skills", "plugin-creator");
+    await mkdir(skillDirectory, { recursive: true });
+    await writeFile(join(packageDirectory, "mosaic-plugin.json"), JSON.stringify({
+      name: "example-plugin",
+      version: "0.1.0",
+      description: "An example plugin",
+      skills: ["skills/plugin-creator"],
+    }));
+    await writeFile(join(skillDirectory, "SKILL.md"), "---\nname: plugin-creator\ndescription: A collision\n---\n");
+
+    try {
+      expect(installedPlugins(home)).toEqual([]);
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
 });
