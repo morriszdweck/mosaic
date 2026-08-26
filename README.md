@@ -34,8 +34,8 @@ Mosaic adds:
 - **Mosaic plugins** — GitHub packages that bundle skills and optional tools,
   with a copyable installation prompt so an agent can install them for you.
 - **Kimi WebBridge browser access** — the `kimi-webbridge` skill and `/browser`
-  setup command are included; the command updates WebBridge and points you to
-  the official Chrome extension.
+  connection check are included; the command reports when WebBridge is ready
+  or points you to the official Chrome extension.
 - **Scheduled tasks** — the agent can schedule a prompt to come back to itself
   later in the same conversation, or as a standing task that runs on the clock
   whether or not Mosaic is open.
@@ -71,8 +71,9 @@ mosaic run "..."      # one-shot, no TUI
 ```
 
 
-Inside the TUI, run `/browser` to update Kimi WebBridge and get the Chrome
-extension link needed to connect your browser.
+Inside the TUI, run `/browser` to check Kimi WebBridge. If it is not connected,
+the agent will give you the Chrome extension link needed to connect your
+browser.
 
 
 Try one of these:
