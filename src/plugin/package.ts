@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
@@ -89,6 +89,44 @@ export function resolvePluginPath(directory: string, relativePath: string): stri
   return target;
 }
 
+function isInside(root: string, target: string): boolean {
+  return target.startsWith(`${root}${sep}`);
+}
+
+function hasSymlink(path: string): boolean {
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink()) return true;
+  if (!stat.isDirectory()) return false;
+  return readdirSync(path, { withFileTypes: true }).some((item) => hasSymlink(join(path, item.name)));
+}
+
+function pluginContentIssue(directory: string, manifest: PluginManifest): string | undefined {
+  try {
+    const root = realpathSync(directory);
+    if (manifest.entry) {
+      const entry = resolvePluginPath(directory, manifest.entry);
+      const entryStat = entry ? lstatSync(entry) : undefined;
+      if (!entry || !entryStat?.isFile() || !isInside(root, realpathSync(entry))) {
+        return "entrypoint is missing, not a file, or escapes the package";
+      }
+    }
+    for (const skillPath of manifest.skills ?? []) {
+      const source = resolvePluginPath(directory, skillPath);
+      const skillFile = source ? join(source, "SKILL.md") : undefined;
+      const skillStat = skillFile && existsSync(skillFile) ? lstatSync(skillFile) : undefined;
+      if (!source || !skillFile || !PLUGIN_NAME.test(basename(source)) || !skillStat?.isFile()) {
+        return "a declared skill is missing, invalid, or has no SKILL.md";
+      }
+      if (!isInside(root, realpathSync(source)) || !isInside(root, realpathSync(skillFile)) || hasSymlink(source)) {
+        return "a declared skill uses a symlink or escapes the package";
+      }
+    }
+  } catch {
+    return "declared plugin files are missing, unreadable, or escape the package";
+  }
+  return undefined;
+}
+
 export function installedPlugins(home = MOSAIC_HOME): readonly InstalledPlugin[] {
   const root = pluginDirectory(home);
   if (!existsSync(root)) return [];
@@ -101,11 +139,12 @@ export function installedPlugins(home = MOSAIC_HOME): readonly InstalledPlugin[]
       process.stderr.write(`mosaic: skipping plugin ${item.name}: ${parsed.message}\n`);
       continue;
     }
-    const entry = parsed.value.entry ? resolvePluginPath(directory, parsed.value.entry) : undefined;
-    if (parsed.value.entry && (!entry || !existsSync(entry))) {
-      process.stderr.write(`mosaic: skipping plugin ${parsed.value.name}: entrypoint is missing or escapes the package\n`);
+    const issue = pluginContentIssue(directory, parsed.value);
+    if (issue) {
+      process.stderr.write(`mosaic: skipping plugin ${parsed.value.name}: ${issue}\n`);
       continue;
     }
+    const entry = parsed.value.entry ? resolvePluginPath(directory, parsed.value.entry) : undefined;
     plugins.push({ directory, manifest: parsed.value, ...(entry === undefined ? {} : { entry }) });
   }
   return plugins;
@@ -129,14 +168,16 @@ export async function syncPluginSkills(home = MOSAIC_HOME): Promise<PluginSyncRe
   for (const plugin of installedPlugins(home)) {
     for (const skillPath of plugin.manifest.skills ?? []) {
       const source = resolvePluginPath(plugin.directory, skillPath);
-      const skillName = source ? basename(source) : "unknown";
-      if (!source || !existsSync(join(source, "SKILL.md")) || !PLUGIN_NAME.test(skillName)) {
+      if (!source) {
+        const skillName = basename(skillPath);
         skipped.push(`${plugin.manifest.name}/${skillName}`);
         continue;
       }
+      const skillName = basename(source);
       const destination = join(destinationRoot, skillName);
       const marker = join(destination, ".mosaic-plugin");
-      if (existsSync(destination) && (!existsSync(marker) || (await readFile(marker, "utf8")).trim() !== plugin.manifest.name)) {
+      const destinationStat = existsSync(destination) ? lstatSync(destination) : undefined;
+      if (destinationStat && (!destinationStat.isDirectory() || destinationStat.isSymbolicLink() || !existsSync(marker) || (await readFile(marker, "utf8")).trim() !== plugin.manifest.name)) {
         skipped.push(`${plugin.manifest.name}/${skillName}`);
         continue;
       }
@@ -189,6 +230,8 @@ export async function installPlugin(spec: string, home = MOSAIC_HOME): Promise<P
     }
     const parsed = readManifest(join(checkout, PLUGIN_MANIFEST));
     if (!parsed.ok) return { ok: false, message: `invalid ${PLUGIN_MANIFEST}: ${parsed.message}` };
+    const issue = pluginContentIssue(checkout, parsed.value);
+    if (issue) return { ok: false, message: `invalid ${PLUGIN_MANIFEST}: ${issue}` };
 
     const target = join(pluginDirectory(home), parsed.value.name);
     if (existsSync(target)) return { ok: false, message: `plugin "${parsed.value.name}" is already installed` };

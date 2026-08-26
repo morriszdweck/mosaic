@@ -78,7 +78,8 @@ The installer accepts GitHub repository URLs or `OWNER/REPOSITORY`, validates
 the manifest, installs tool dependencies when needed, and keeps the package
 under `~/.mosaic/plugins`. Skills are synced into Mosaic's own skill directory
 and tool entrypoints are loaded from the generated Mosaic config. Restart after
-installation.
+installation. Only install repositories the user trusts: tool entrypoints and
+dependency installation can execute code on their machine.
 
 Use `mosaic plugins list` to see installed packages. Never copy a plugin into
 `~/.config/opencode`; that directory belongs to a separate OpenCode install.

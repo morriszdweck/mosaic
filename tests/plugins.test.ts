@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { githubRepository, parsePluginManifest, pluginDirectory, resolvePluginPath, syncPluginSkills } from "../src/plugin/package.ts";
+import { githubRepository, installedPlugins, parsePluginManifest, pluginDirectory, resolvePluginPath, syncPluginSkills } from "../src/plugin/package.ts";
 
 describe("Mosaic plugin manifests", () => {
   test("parses a package with tools and skills", () => {
@@ -55,6 +55,46 @@ describe("Mosaic plugin sources", () => {
     try {
       expect(await syncPluginSkills(home)).toEqual({ synced: ["example-plugin/example"], skipped: [] });
       expect(await readFile(join(home, "config", "opencode", "skill", "example", "SKILL.md"), "utf8")).toContain("name: example");
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
+  test("does not discover a package with a missing declared skill", async () => {
+    const home = await mkdtemp("/tmp/mosaic-plugin-test-");
+    const packageDirectory = join(pluginDirectory(home), "example-plugin");
+    await mkdir(packageDirectory, { recursive: true });
+    await writeFile(join(packageDirectory, "mosaic-plugin.json"), JSON.stringify({
+      name: "example-plugin",
+      version: "0.1.0",
+      description: "An example plugin",
+      skills: ["skills/missing"],
+    }));
+
+    try {
+      expect(installedPlugins(home)).toEqual([]);
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
+  test("does not discover a package whose skill symlink leaves the package", async () => {
+    const home = await mkdtemp("/tmp/mosaic-plugin-test-");
+    const packageDirectory = join(pluginDirectory(home), "example-plugin");
+    const outsideDirectory = join(home, "outside");
+    await mkdir(join(packageDirectory, "skills"), { recursive: true });
+    await mkdir(outsideDirectory, { recursive: true });
+    await writeFile(join(outsideDirectory, "SKILL.md"), "---\nname: outside\ndescription: Outside\n---\n");
+    await symlink(outsideDirectory, join(packageDirectory, "skills", "linked"), "dir");
+    await writeFile(join(packageDirectory, "mosaic-plugin.json"), JSON.stringify({
+      name: "example-plugin",
+      version: "0.1.0",
+      description: "An example plugin",
+      skills: ["skills/linked"],
+    }));
+
+    try {
+      expect(installedPlugins(home)).toEqual([]);
     } finally {
       await rm(home, { recursive: true, force: true });
     }

@@ -76,6 +76,7 @@ Summarise these three papers and tell me where they disagree.
 Plan this migration, then list the risks I should decide on.
 Read this CSV and explain what it actually measures.
 Split this launch plan among the right specialists and bring me one answer.
+```
 
 
 ## Plugins
@@ -88,3 +89,5 @@ mosaic plugins install https://github.com/OWNER/REPOSITORY
 ```
 
 You can also open a plugin repository, copy its **Install with Mosaic** prompt, and paste it into an agent. Restart Mosaic after installation. To create a plugin, ask Mosaic to use its built-in `plugin-creator` skill; it will shape the manifest, package contents, README, and installation prompt.
+
+Only install repositories you trust: plugin tools and dependency installation can execute code on your machine.
