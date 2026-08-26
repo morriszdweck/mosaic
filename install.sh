@@ -20,6 +20,21 @@ die() {
 
 command -v bun >/dev/null 2>&1 || die "Bun is required — install it from https://bun.sh, then re-run this."
 
+install_kimi_webbridge() {
+  local binary="$HOME/.kimi-webbridge/bin/kimi-webbridge"
+  if [ -x "$binary" ] || command -v kimi-webbridge >/dev/null 2>&1; then
+    return
+  fi
+
+  command -v curl >/dev/null 2>&1 || die "curl is required to install Kimi WebBridge."
+  echo "Installing Kimi WebBridge CLI…"
+  curl -fsSL https://cdn.kimi.com/webbridge/install.sh | bash
+
+  if [ ! -x "$binary" ] && ! command -v kimi-webbridge >/dev/null 2>&1; then
+    die "Kimi WebBridge installation finished without a kimi-webbridge CLI."
+  fi
+}
+
 echo "Installing Mosaic…"
 
 if [ -d "$PREFIX/.git" ]; then
@@ -34,6 +49,7 @@ fi
 # --production would skip the typescript/@types used by `bun run typecheck`,
 # which contributors need; the tree is small enough that it is not worth it.
 bun install --cwd "$PREFIX" --silent
+install_kimi_webbridge
 
 # Swarm mode ships as markdown agents in its own repository. Vendored here
 # rather than installed by its own script, which targets ~/.config/opencode —

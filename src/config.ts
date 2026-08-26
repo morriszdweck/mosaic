@@ -11,6 +11,7 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { AGENTS } from "./agents.ts";
+import { BROWSER_COMMAND } from "./browser.ts";
 import { PLUGINS_COMMAND } from "./plugins.ts";
 import { pluginEntries } from "./plugin/package.ts";
 
@@ -76,7 +77,7 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
     ],
 
     provider: PROVIDER_LABELS,
-    command: PLUGINS_COMMAND,
+    command: { ...PLUGINS_COMMAND, ...BROWSER_COMMAND },
 
     // Skills are the engine's own feature and it discovers them itself, under
     // the XDG directories the launcher already points at $MOSAIC_HOME.
