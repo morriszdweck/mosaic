@@ -31,8 +31,8 @@ Mosaic adds:
   `~/.mosaic`, separate from other terminal agents.
 - **Agent Swarm** — an orchestrator that decomposes a task and runs specialists
   in parallel, installed with Mosaic.
-- **Plugin support coming soon** — extend Mosaic with installable plugins for
-  tools, workflows, integrations, and interface customizations.
+- **Mosaic plugins** — GitHub packages that bundle skills and optional tools,
+  with a copyable installation prompt so an agent can install them for you.
 - **Scheduled tasks** — the agent can schedule a prompt to come back to itself
   later in the same conversation, or as a standing task that runs on the clock
   whether or not Mosaic is open.
@@ -76,3 +76,18 @@ Summarise these three papers and tell me where they disagree.
 Plan this migration, then list the risks I should decide on.
 Read this CSV and explain what it actually measures.
 Split this launch plan among the right specialists and bring me one answer.
+```
+
+
+## Plugins
+
+A Mosaic plugin is one GitHub repository containing a `mosaic-plugin.json` manifest, optional tool entrypoint, and optional bundled skills. Mosaic owns the package format and install workflow.
+
+```sh
+mosaic plugins list
+mosaic plugins install https://github.com/OWNER/REPOSITORY
+```
+
+You can also open a plugin repository, copy its **Install with Mosaic** prompt, and paste it into an agent. Restart Mosaic after installation. To create a plugin, ask Mosaic to use its built-in `plugin-creator` skill; it will shape the manifest, package contents, README, and installation prompt.
+
+Only install repositories you trust: plugin tools and dependency installation can execute code on your machine.

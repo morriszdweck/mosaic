@@ -23,7 +23,7 @@ const SOUL = join(MOSAIC_HOME, "SOUL.md");
 const SKILLS = join(MOSAIC_HOME, "config", "opencode", "skill");
 
 /** Skills Mosaic installs itself; editing them would be undone on next launch. */
-const MANAGED = new Set(["agent-swarm", "customize-mosaic", "mosaic-self", "customize-opencode"]);
+const MANAGED = new Set(["agent-swarm", "customize-mosaic", "mosaic-self", "customize-opencode", "plugin-creator"]);
 
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 

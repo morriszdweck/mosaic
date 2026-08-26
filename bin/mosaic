@@ -9,6 +9,7 @@
 set -euo pipefail
 
 MOSAIC_HOME="${MOSAIC_HOME:-$HOME/.mosaic}"
+export MOSAIC_HOME
 
 # Resolve this script's directory through symlinks so the install stays
 # relocatable and a PATH shim still finds the runtime next to it.
@@ -31,6 +32,15 @@ mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 # Mosaic's config is generated rather than shipped, because it has to carry
 # absolute paths to the plugin and prompt files inside this install.
 export OPENCODE_CONFIG="${MOSAIC_CONFIG:-$MOSAIC_HOME/mosaic.json}"
+
+case "${1:-}" in
+  plugins)
+    shift
+    MOSAIC_ROOT="$ROOT" exec bun run "$ROOT/src/plugins.ts" "$@"
+    ;;
+esac
+
+MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/plugins.ts" sync
 MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" > "$OPENCODE_CONFIG"
 
 # The TUI reads its own config from a fixed path rather than $OPENCODE_CONFIG,
