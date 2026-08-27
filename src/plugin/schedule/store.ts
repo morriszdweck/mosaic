@@ -118,6 +118,7 @@ export class TaskStore {
     add("scope", "TEXT NOT NULL DEFAULT 'session'");
     add("directory", "TEXT NOT NULL DEFAULT ''");
     add("recurrence", "TEXT");
+    add("heartbeat", "INTEGER NOT NULL DEFAULT 0");
     add("last_run_at", "INTEGER");
     add("last_status", "TEXT");
     add("last_output", "TEXT");

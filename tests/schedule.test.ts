@@ -290,4 +290,55 @@ describe("upgrading an existing database", () => {
     expect(upgraded.listStandalone()).toHaveLength(0);
     upgraded.close();
   });
+
+  test("a pre-heartbeat tasks.db migrates heartbeat and supports every task type", () => {
+    const path = join(dir, "pre-heartbeat.db");
+    const old = new Database(path, { create: true });
+    old.exec(`
+      CREATE TABLE tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        due_at INTEGER NOT NULL,
+        repeat INTEGER,
+        when_text TEXT NOT NULL,
+        fired INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        done INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+    old.prepare(
+      "INSERT INTO tasks (session_id, prompt, due_at, when_text, created_at) VALUES ('ses_old', 'legacy check', ?, 'in 1m', ?)",
+    ).run(NOW, NOW);
+    old.close();
+
+    const upgraded = new TaskStore(path);
+    const existing = upgraded.get(1);
+    expect(existing?.prompt).toBe("legacy check");
+    expect(existing?.heartbeat).toBe(false);
+
+    const ordinary = upgraded.add({ sessionID: "ses_new", prompt: "check once", dueAt: NOW, when: "in 1m" });
+    const heartbeat = upgraded.add({
+      sessionID: "ses_new",
+      prompt: "check continuously",
+      dueAt: NOW,
+      repeat: 600,
+      when: "every 10m",
+      heartbeat: true,
+    });
+    expect(ordinary.heartbeat).toBe(false);
+    expect(heartbeat.heartbeat).toBe(true);
+    expect(upgraded.list("ses_new")).toHaveLength(2);
+    expect(upgraded.heartbeatFor("ses_new")?.id).toBe(heartbeat.id);
+    upgraded.close();
+
+    const migrated = new Database(path);
+    const heartbeatColumn = (migrated.prepare("PRAGMA table_info(tasks)").all() as Array<{
+      name: string;
+      dflt_value: string | null;
+    }>).find((column) => column.name === "heartbeat");
+    expect(heartbeatColumn).toMatchObject({ name: "heartbeat", dflt_value: "0" });
+    expect(migrated.prepare("SELECT heartbeat FROM tasks WHERE id = 1").get()).toEqual({ heartbeat: 0 });
+    migrated.close();
+  });
 });
