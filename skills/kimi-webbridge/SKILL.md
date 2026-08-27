@@ -5,24 +5,25 @@ description: Control the user's real Chrome or Edge browser through Kimi WebBrid
 
 # Kimi WebBridge
 
-Mosaic includes this skill and the `/browser` setup command. Kimi WebBridge
+Mosaic includes this skill and the `/browser` connection check. Kimi WebBridge
 lets the agent work through the user's existing Chrome or Edge session, so the
 user's logged-in pages remain on their computer.
 
 ## Setup
 
-When the user invokes `/browser` or asks to connect browser access:
+When the user invokes `/browser` or asks to check browser access:
 
-1. Run `kimi-webbridge upgrade` through the shell.
-2. Send the user the official Kimi WebBridge Chrome extension link:
+1. Run `kimi-webbridge status` through the shell.
+2. If the status confirms that WebBridge is connected, tell the user it is
+   connected and ready to work in the browser.
+3. If the command fails or reports that WebBridge is not connected, send the
+   user the official Chrome extension link:
    https://chromewebstore.google.com/detail/kimi-webbridge/fldmhceldgbpfpkbgopacenieobmligc
-3. Tell the user to install and enable the extension, then continue once it is
-   connected.
+4. Ask the user to install and enable the extension, then run `/browser` again.
 
-Do not install a separate native browser bridge. The Mosaic installer provides
-the Kimi WebBridge CLI, and this skill is shipped with Mosaic; the browser
-extension is the only user download required. If the CLI is missing, tell the
-user to rerun the Mosaic installer rather than fetching an untrusted substitute.
+The Kimi WebBridge CLI and this skill are already provided to the agent. Do not
+install or upgrade the CLI from this skill, and do not fetch an untrusted
+substitute. The browser extension is the only user download required.
 
 ## Browser work
 
