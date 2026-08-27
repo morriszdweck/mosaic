@@ -9,8 +9,15 @@ import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
  * engine instead of forking it.
  */
 
-/** Literal product name for the home-screen splash. */
-const WORDMARK = ["mosaic"];
+/** Product name rendered by the home-screen splash. */
+const SPLASH_TEXT = "mosaic";
+
+/** Large block-capital treatment for the splash text. */
+const WORDMARK = [
+  "█▀▄▀█ █▀▀█ █▀▀▀ █▀▀█ ▀█▀ █▀▀█",
+  "█ █ █ █  █ ▀▀▀█ █▄▄█  █  █   ",
+  "▀   ▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀ ▀▀▀▀",
+];
 
 /**
  * Example prompts. Deliberately spread across research, writing, analysis and
@@ -136,4 +143,4 @@ function cwdLabel(): string {
 const plugin: TuiPluginModule = { id: "mosaic-branding", tui };
 
 export default plugin;
-export { PLACEHOLDERS, TIPS, WORDMARK };
+export { PLACEHOLDERS, SPLASH_TEXT, TIPS, WORDMARK };
