@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { buildTuiConfig } from "../src/config.ts";
-import { PLACEHOLDERS, WORDMARK } from "../src/plugin/branding/index.tsx";
+import { PLACEHOLDERS, SPLASH_TEXT, WORDMARK } from "../src/plugin/branding/index.tsx";
 
 describe("tui config", () => {
   // Plugins listed in the agent config only get their `server` half loaded.
@@ -18,7 +18,12 @@ describe("wordmark", () => {
   });
 
   test("says mosaic, not the engine's name", () => {
-    expect(WORDMARK).toEqual(["mosaic"]);
+    expect(SPLASH_TEXT).toBe("mosaic");
+  });
+
+  test("uses a large wordmark rather than a one-line label", () => {
+    expect(WORDMARK).toHaveLength(3);
+    expect(WORDMARK[0]!.length).toBeGreaterThan(SPLASH_TEXT.length);
   });
 });
 
