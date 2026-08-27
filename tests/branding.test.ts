@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { buildTuiConfig } from "../src/config.ts";
-import { PLACEHOLDERS, SPLASH_TEXT, WORDMARK } from "../src/plugin/branding/index.tsx";
+import {
+  PLACEHOLDERS,
+  SPLASH_TEXT,
+  visiblePluginStatuses,
+  WORDMARK,
+} from "../src/plugin/branding/index.tsx";
 
 describe("built-in tui branding", () => {
   // Branding renders into TUI slots, so it has to be registered in tui.json or
@@ -33,6 +38,19 @@ describe("built-in tui branding", () => {
       plugin_enabled: { "mosaic-branding": false, "another-plugin": false },
     });
     expect(merged.plugin_enabled).toEqual({ "another-plugin": false });
+  });
+
+  test("does not expose built-in branding in the native plugin manager", () => {
+    expect(
+      visiblePluginStatuses([
+        { id: "mosaic-branding", source: "file" },
+        { id: "example-plugin", source: "file" },
+        { id: "internal:home-tips", source: "internal" },
+      ]),
+    ).toEqual([
+      { id: "example-plugin", source: "file" },
+      { id: "internal:home-tips", source: "internal" },
+    ]);
   });
 });
 

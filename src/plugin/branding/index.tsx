@@ -1,4 +1,7 @@
 import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
+import { registerPluginManager } from "./plugin-manager.tsx";
+
+export { visiblePluginStatuses } from "./plugin-manager.tsx";
 
 /**
  * Built-in Mosaic TUI branding.
@@ -67,6 +70,7 @@ const tui: TuiPlugin = async (api) => {
     // rest of Mosaic's branding from loading.
     await api.plugins.deactivate(id).catch(() => false);
   }
+  await registerPluginManager(api);
 
   const version = process.env.MOSAIC_VERSION ?? "";
   const tip = TIPS[Math.floor(Math.random() * TIPS.length)]!;
