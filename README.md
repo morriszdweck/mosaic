@@ -39,9 +39,9 @@ Mosaic adds:
 - **Scheduled tasks** — the agent can schedule a prompt to come back to itself
   later in the same conversation, or as a standing task that runs on the clock
   whether or not Mosaic is open.
-- **OpenCode Zen free tier** — start without an account or card and get access
-  to a curated selection of cheap models, including Mosaic Free models such as
-  Stealth and Big Pickle.
+- **Free tier** — start without an account or card and get access
+  to a curated selection of cheap models from OpenCode Zen, including models such as
+ Mosaic Free (Big pickle), MiMo, and more.
 - **Personality** — a `SOUL.md` that shapes tone and standing preferences.
 - **A point of view** — Mosaic starts from questions, plans, evidence, and
   drafts; code is there when it is the right tool.
