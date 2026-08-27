@@ -74,6 +74,18 @@ if [ ! -x "$engine" ]; then
   exit 1
 fi
 
+case "${1:-}" in
+  providers)
+    # Provider management belongs to Mosaic, even though the engine renders
+    # its help with its own command name.
+    set +e
+    "$engine" "$@" 2>&1 | sed -E 's/(^|[^[:alnum:]_-])opencode([[:space:]]+)/\1mosaic\2/g'
+    status=${PIPESTATUS[0]}
+    set -e
+    exit "$status"
+    ;;
+esac
+
 export MOSAIC_VERSION
 MOSAIC_VERSION="$(bun --print "require('$ROOT/package.json').version" 2>/dev/null || echo "unknown")"
 
