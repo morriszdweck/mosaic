@@ -46,6 +46,7 @@ describe("Mosaic bootstrap launcher", () => {
       });
 
       expect(result.status).toBe(0);
+      expect(result.stdout).toBe("mosaic: checking for updates...\n");
       expect(readFileSync(updateMarker, "utf8")).toBe("updated");
       expect(readFileSync(argsMarker, "utf8")).toBe("run research\n");
       expect(readFileSync(curlMarker, "utf8")).toContain(
@@ -95,6 +96,7 @@ describe("Mosaic bootstrap launcher", () => {
       });
 
       expect(result.status).toBe(0);
+      expect(result.stdout).toBe("mosaic: checking for updates...\n");
       expect(readFileSync(argsMarker, "utf8")).toBe("status\n");
       expect(readFileSync(curlMarker, "utf8")).toContain("raw.githubusercontent.com");
       expect(result.stderr).toContain("starting the existing install");

@@ -17,8 +17,9 @@ export MOSAIC_PREFIX="$ROOT"
 export MOSAIC_BIN_DIR="$launcher_dir"
 
 if [ "${MOSAIC_SKIP_UPDATE:-0}" != "1" ]; then
+  echo "mosaic: checking for updates..."
   if command -v curl >/dev/null 2>&1; then
-    if ! curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh | bash; then
+    if ! { curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh | bash; } >/dev/null 2>&1; then
       echo "mosaic: automatic update failed; starting the existing install" >&2
     fi
   else
