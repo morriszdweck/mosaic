@@ -21,7 +21,8 @@ describe("config keys", () => {
 
   test("paths are absolute, since the config is read from $MOSAIC_HOME", () => {
     for (const p of [...(config.instructions ?? []), ...(config.plugin ?? [])]) {
-      expect(p.startsWith("/")).toBe(true);
+      const path = typeof p === "string" ? p : p[0];
+      expect(path.startsWith("/")).toBe(true);
     }
   });
 
@@ -33,6 +34,19 @@ describe("config keys", () => {
   test("does not set skills — the engine discovers those itself", () => {
     // An array here fails the engine's schema and blocks startup entirely.
     expect(config).not.toHaveProperty("skills");
+  });
+
+  test("does not install the old agent-explainer plugins command", () => {
+    expect(config.command).not.toHaveProperty("plugins");
+  });
+
+  test("keeps native plugin options available to user config", async () => {
+    const { mergeConfig } = await import("../src/config.ts");
+    const merged = mergeConfig(
+      { plugin: [] },
+      { plugin: [["opencode-example-plugin", { enabled: true }]] },
+    );
+    expect(merged.plugin).toEqual([["opencode-example-plugin", { enabled: true }]]);
   });
 });
 

@@ -24,7 +24,7 @@ Mosaic.
 | Themes | `~/.mosaic/config/opencode/themes/<name>.json` |
 | Interface settings | `~/.mosaic/config/opencode/tui.json` |
 | Memory | `~/.mosaic/memory.db` |
-| Plugins | `~/.mosaic/plugins/<name>` |
+| Native plugins | `~/.mosaic/config/opencode/plugin(s)/` or the `plugin` array |
 | Generated config | `~/.mosaic/mosaic.json` — **rewritten every launch, never edit** |
 
 ## config.json
@@ -35,7 +35,7 @@ Mosaic.
   "small_model": "anthropic/claude-haiku-4-5",
   "agent": { "mosaic": { "model": "anthropic/claude-opus-4-1" } },
   "instructions": ["~/notes/house-style.md"],
-  "plugin": ["./my-plugin.ts"]
+  "plugin": ["opencode-example-plugin"]
 }
 ```
 
@@ -67,17 +67,32 @@ Mosaic rather than replacing what it ships.
 half. A plugin that draws something must be listed there or it is accepted,
 reported as loaded, and silently never drawn.
 
-## Plugins
+## Native plugins
 
-A Mosaic plugin is a GitHub repository that bundles one capability: skills, tools, or both. Install one with the shell command below, or open its repository, copy the **Install with Mosaic** prompt, and paste that prompt into an agent:
+Mosaic carries OpenCode's native plugin architecture through unchanged. A
+plugin is an npm package or local JavaScript/TypeScript module with
+`package.json` as its manifest; there is no `mosaic-plugin.json` or
+`~/.mosaic/plugins` store.
+
+Install a package globally for Mosaic with:
 
 ```sh
-mosaic plugins install https://github.com/OWNER/REPOSITORY
+mosaic plugin <npm-package-or-git-spec> --global
 ```
 
-Mosaic validates `mosaic-plugin.json`, keeps the package under `~/.mosaic/plugins`, loads tool entrypoints on the next start, and syncs bundled skills into Mosaic's skill directory. Use `mosaic plugins list` to inspect installed packages. Never copy a plugin into `~/.config/opencode`; that directory belongs to a separate OpenCode install.
+The compatibility form `mosaic plugins install <npm-package-or-git-spec>`
+translates to the same native OpenCode command. A package that bundles skills
+should expose a native `config` hook that adds its `skills/` directory to
+OpenCode's skill paths. Local plugins can also live in
+`~/.mosaic/config/opencode/plugin(s)/`, where OpenCode discovers them.
 
-The built-in `plugin-creator` skill can scaffold a plugin repository, including its manifest, README, bundled skills or tools, and the copyable installation prompt.
+User-installed packages and local plugins are loaded after Mosaic's shipped
+server plugins. Restart after changing a plugin or its package spec. Only
+install code the user trusts: native plugin code and its dependencies execute
+inside Mosaic.
+
+The built-in `plugin-creator` skill scaffolds this native package layout and
+entrypoint. It does not create a Mosaic-specific manifest or installer.
 
 ## The engine's own skill
 

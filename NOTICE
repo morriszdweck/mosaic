@@ -13,6 +13,6 @@ Mosaic does not vendor or modify OpenCode's source. It depends on the published
 `opencode-ai` and `@opencode-ai/plugin` packages and configures them: its own
 agents and system prompts, its own memory plugin, and its own state directory.
 Everything under Mosaic's own copyright is the configuration, prompts, launcher,
-memory plugin, and installer in this repository.
+built-in extensions, and installer in this repository.
 
 A copy of the MIT License, which covers both projects, is in LICENSE.

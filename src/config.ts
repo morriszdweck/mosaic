@@ -2,9 +2,10 @@
  * Emits Mosaic's OpenCode config to stdout. The launcher writes it to
  * $MOSAIC_HOME/mosaic.json on every start.
  *
- * Generated rather than shipped as static JSON because the plugin and prompt
- * entries have to be absolute paths into whatever directory this install
- * happens to live in, and because a user's own overrides get merged on top.
+ * Generated rather than shipped as static JSON because the built-in plugin and
+ * prompt entries have to be absolute paths into whatever directory this
+ * install happens to live in, and because a user's own overrides get merged
+ * on top.
  */
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -12,8 +13,6 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { AGENTS } from "./agents.ts";
 import { BROWSER_COMMAND } from "./browser.ts";
-import { PLUGINS_COMMAND } from "./plugins.ts";
-import { pluginEntries } from "./plugin/package.ts";
 
 const ROOT = process.env.MOSAIC_ROOT ?? resolve(import.meta.dir, "..");
 const MOSAIC_HOME = process.env.MOSAIC_HOME ?? join(homedir(), ".mosaic");
@@ -30,12 +29,14 @@ export interface MosaicConfig {
   autoupdate?: boolean;
   share?: "manual" | "auto" | "disabled";
   instructions?: string[];
-  plugin?: string[];
+  plugin?: NativePluginSpec[];
   agent?: Record<string, unknown>;
   provider?: Record<string, unknown>;
   command?: Record<string, unknown>;
   [key: string]: unknown;
 }
+
+export type NativePluginSpec = string | [string, Record<string, unknown>];
 
 export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
   return {
@@ -65,7 +66,9 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
     // last so it can override anything Mosaic says about itself.
     instructions: [join(root, "prompts", "mosaic.md"), ...soulFiles(home)],
 
-    // Memory is Mosaic's own addition — see src/plugin/memory.
+    // These are Mosaic's own built-in server plugins. User plugins use the
+    // same native OpenCode `plugin` array through config.json or the engine's
+    // `plugin` command; they are never copied into a Mosaic-specific store.
     plugin: [
       join(root, "src", "plugin", "memory", "index.ts"),
       join(root, "src", "plugin", "schedule", "index.ts"),
@@ -73,11 +76,10 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
       join(root, "src", "plugin", "checkpoint", "index.ts"),
       join(root, "src", "plugin", "hooks", "index.ts"),
       join(root, "src", "plugin", "keypool", "index.ts"),
-      ...pluginEntries(home),
     ],
 
     provider: PROVIDER_LABELS,
-    command: { ...PLUGINS_COMMAND, ...BROWSER_COMMAND },
+    command: BROWSER_COMMAND,
 
     // Skills are the engine's own feature and it discovers them itself, under
     // the XDG directories the launcher already points at $MOSAIC_HOME.
@@ -144,9 +146,30 @@ export function mergeTuiConfig(
   existing: Record<string, unknown>,
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...generated, ...existing };
-  // The plugin list is Mosaic's; a stale absolute path would break branding.
-  merged.plugin = generated.plugin;
+  // Keep Mosaic's built-in branding first, then carry through native TUI
+  // plugins the user configured. Old branding paths are not user plugins.
+  const builtinPlugins = Array.isArray(generated.plugin) ? generated.plugin : [];
+  const userPlugins = Array.isArray(existing.plugin) ? existing.plugin : [];
+  merged.plugin = [
+    ...builtinPlugins,
+    ...userPlugins.filter((plugin) => !isBrandingPath(plugin)),
+  ];
+  if (isRecord(existing.plugin_enabled)) {
+    const pluginEnabled = { ...existing.plugin_enabled };
+    delete pluginEnabled["mosaic-branding"];
+    if (Object.keys(pluginEnabled).length === 0) delete merged.plugin_enabled;
+    else merged.plugin_enabled = pluginEnabled;
+  }
   return merged;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isBrandingPath(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  return value.endsWith("/branding.tsx") || value.endsWith("\\branding.tsx");
 }
 
 /** Read the TUI config already on disk, if any. */

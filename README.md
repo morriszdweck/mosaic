@@ -31,8 +31,8 @@ Mosaic adds:
   `~/.mosaic`, separate from other terminal agents.
 - **Agent Swarm** — an orchestrator that decomposes a task and runs specialists
   in parallel, installed with Mosaic.
-- **Mosaic plugins** — GitHub packages that bundle skills and optional tools,
-  with a copyable installation prompt so an agent can install them for you.
+- **OpenCode-native plugins** — npm or Git-backed packages that add tools,
+  hooks, and skills through the same plugin architecture as OpenCode.
 - **Kimi WebBridge browser access** — the `kimi-webbridge` skill and `/browser`
   connection check are included; the command reports when WebBridge is ready
   or points you to the official Chrome extension.
@@ -92,13 +92,27 @@ Split this launch plan among the right specialists and bring me one answer.
 
 ## Plugins
 
-A Mosaic plugin is one GitHub repository containing a `mosaic-plugin.json` manifest, optional tool entrypoint, and optional bundled skills. Mosaic owns the package format and install workflow.
+Mosaic uses OpenCode's native plugin architecture. A plugin is a standard npm
+package or local JavaScript/TypeScript module with `package.json` as its
+manifest. Packages can provide tools and hooks, and can register bundled
+`skills/` with OpenCode's native `skill` tool. There is no Mosaic-specific
+manifest or package store.
 
 ```sh
-mosaic plugins list
-mosaic plugins install https://github.com/OWNER/REPOSITORY
+mosaic plugin <npm-package-or-git-spec> --global
 ```
 
-You can also open a plugin repository, copy its **Install with Mosaic** prompt, and paste it into an agent. Restart Mosaic after installation. To create a plugin, ask Mosaic to use its built-in `plugin-creator` skill; it will shape the manifest, package contents, README, and installation prompt.
+For example, a GitHub-hosted package can be installed with:
 
-Only install repositories you trust: plugin tools and dependency installation can execute code on your machine.
+```sh
+mosaic plugin opencode-example-plugin@git+https://github.com/OWNER/REPOSITORY.git --global
+```
+
+`mosaic plugins install <spec>` remains a compatibility alias for the native
+command. You can also add a package to the `plugin` array in
+`~/.mosaic/config.json`. Restart Mosaic after installation. Only install
+plugins you trust: native plugin code and its dependencies execute in Mosaic.
+
+Mosaic's branding is built into the repository and is force-loaded on every
+launch; it is not a removable user plugin. Ask Mosaic to use its built-in
+`plugin-creator` skill when you want to create a native plugin package.

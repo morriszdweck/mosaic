@@ -1,12 +1,14 @@
 import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
 
 /**
- * Mosaic's TUI branding.
+ * Built-in Mosaic TUI branding.
  *
  * The engine's home screen carries its own wordmark and coding-flavoured
  * example prompts. Both are exposed as plugin slots, so Mosaic replaces them
  * here rather than by vendoring the TUI — the whole point of depending on the
- * engine instead of forking it.
+ * engine instead of forking it. This module ships inside Mosaic and is
+ * force-loaded by the launcher; it is not an installable or removable user
+ * plugin.
  */
 
 /** Product name rendered by the home-screen splash. */
@@ -140,7 +142,7 @@ function cwdLabel(): string {
   return home && cwd.startsWith(home) ? `~${cwd.slice(home.length)}` : cwd;
 }
 
-const plugin: TuiPluginModule = { id: "mosaic-branding", tui };
+const builtinBranding: TuiPluginModule = { id: "mosaic-branding", tui };
 
-export default plugin;
+export default builtinBranding;
 export { PLACEHOLDERS, SPLASH_TEXT, TIPS, WORDMARK };

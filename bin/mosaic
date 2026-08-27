@@ -30,17 +30,8 @@ export XDG_STATE_HOME="$MOSAIC_HOME/state"
 mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
 # Mosaic's config is generated rather than shipped, because it has to carry
-# absolute paths to the plugin and prompt files inside this install.
+# absolute paths to the built-in plugins and prompt files inside this install.
 export OPENCODE_CONFIG="${MOSAIC_CONFIG:-$MOSAIC_HOME/mosaic.json}"
-
-case "${1:-}" in
-  plugins)
-    shift
-    MOSAIC_ROOT="$ROOT" exec bun run "$ROOT/src/plugins.ts" "$@"
-    ;;
-esac
-
-MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/plugins.ts" sync
 MOSAIC_ROOT="$ROOT" bun run "$ROOT/src/config.ts" > "$OPENCODE_CONFIG"
 
 # The TUI reads its own config from a fixed path rather than $OPENCODE_CONFIG,
@@ -80,6 +71,44 @@ case "${1:-}" in
     # its help with its own command name.
     set +e
     "$engine" "$@" 2>&1 | sed -E 's/(^|[^[:alnum:]_-])opencode([[:space:]]+)/\1mosaic\2/g'
+    status=${PIPESTATUS[0]}
+    set -e
+    exit "$status"
+    ;;
+esac
+
+# Plugins use OpenCode's native package and config architecture. Keep the
+# plural form as a friendly Mosaic alias, while translating the former
+# `plugins install <module>` spelling to OpenCode's `plugin <module>` command.
+case "${1:-}" in
+  plugin | plugins)
+    command="$1"
+    shift
+    if [ "$command" = "plugins" ]; then
+      case "${1:-}" in
+        install)
+          shift
+          ;;
+        list | help | --help | -h | "")
+          set -- --help
+          ;;
+      esac
+      if [ "${1:-}" != "--help" ] && [ "${1:-}" != "-h" ] && [ "$#" -gt 0 ]; then
+        has_global=0
+        for arg in "$@"; do
+          case "$arg" in
+            -g | --global)
+              has_global=1
+              ;;
+          esac
+        done
+        if [ "$has_global" -eq 0 ]; then
+          set -- "$@" --global
+        fi
+      fi
+    fi
+    set +e
+    "$engine" plugin "$@" 2>&1 | sed -E 's/(^|[^[:alnum:]_-])opencode([[:space:]]+)/\1mosaic\2/g'
     status=${PIPESTATUS[0]}
     set -e
     exit "$status"

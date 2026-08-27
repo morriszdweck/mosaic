@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Added Mosaic plugins: GitHub packages that bundle skills and optional tools, a `mosaic plugins` installer/list command, a `/plugins` in-app guide, and the built-in `plugin-creator` skill.
+- Switched plugin distribution to OpenCode's native package architecture;
+  removed the Mosaic-specific manifest/store and the old `/plugins` guide.
 
 ## 0.10.0
 

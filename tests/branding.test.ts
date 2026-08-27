@@ -2,12 +2,37 @@ import { describe, expect, test } from "bun:test";
 import { buildTuiConfig } from "../src/config.ts";
 import { PLACEHOLDERS, SPLASH_TEXT, WORDMARK } from "../src/plugin/branding/index.tsx";
 
-describe("tui config", () => {
-  // Plugins listed in the agent config only get their `server` half loaded.
+describe("built-in tui branding", () => {
   // Branding renders into TUI slots, so it has to be registered in tui.json or
   // it is accepted without error and simply never drawn.
   test("registers branding in the TUI config, not the agent config", () => {
     expect(buildTuiConfig("/opt/mosaic").plugin).toEqual(["/opt/mosaic/src/plugin/branding/index.tsx"]);
+  });
+
+  test("keeps the built-in branding path when user config tries to replace it", async () => {
+    const { mergeTuiConfig } = await import("../src/config.ts");
+    const generated = buildTuiConfig("/opt/mosaic");
+    const merged = mergeTuiConfig(generated, { plugin: [] });
+    expect(merged.plugin).toEqual(generated.plugin);
+  });
+
+  test("preserves native TUI plugins alongside built-in branding", async () => {
+    const { mergeTuiConfig } = await import("../src/config.ts");
+    const merged = mergeTuiConfig(buildTuiConfig("/opt/mosaic"), {
+      plugin: ["/opt/plugins/example.tsx", "/old/install/branding.tsx"],
+    });
+    expect(merged.plugin).toEqual([
+      "/opt/mosaic/src/plugin/branding/index.tsx",
+      "/opt/plugins/example.tsx",
+    ]);
+  });
+
+  test("does not let user config disable built-in branding", async () => {
+    const { mergeTuiConfig } = await import("../src/config.ts");
+    const merged = mergeTuiConfig(buildTuiConfig("/opt/mosaic"), {
+      plugin_enabled: { "mosaic-branding": false, "another-plugin": false },
+    });
+    expect(merged.plugin_enabled).toEqual({ "another-plugin": false });
   });
 });
 
