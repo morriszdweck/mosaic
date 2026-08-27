@@ -52,16 +52,16 @@ else
 fi
 
 mkdir -p "$BIN_DIR"
-ln -sf "$PREFIX/bin/mosaic" "$BIN_DIR/mosaic"
-chmod +x "$PREFIX/bin/mosaic"
+ln -sf "$PREFIX/bin/mosaic-bootstrap" "$BIN_DIR/mosaic"
+chmod +x "$PREFIX/bin/mosaic" "$PREFIX/bin/mosaic-bootstrap"
 
 # The launcher resolves the install relative to itself through the symlink, so
 # check that it actually lands somewhere runnable before claiming success.
-if ! "$BIN_DIR/mosaic" --version >/dev/null 2>&1; then
-  die "installed, but '$BIN_DIR/mosaic' did not run"
+if ! "$PREFIX/bin/mosaic" --version >/dev/null 2>&1; then
+  die "installed, but '$PREFIX/bin/mosaic' did not run"
 fi
 
-echo "✓ $("$BIN_DIR/mosaic" --version)"
+echo "✓ $("$PREFIX/bin/mosaic" --version)"
 echo "  installed to $PREFIX, linked at $BIN_DIR/mosaic"
 
 if ! echo ":$PATH:" | grep -q ":$BIN_DIR:"; then

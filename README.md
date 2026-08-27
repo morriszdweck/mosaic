@@ -58,7 +58,9 @@ curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh
 
 Requires [Bun](https://bun.sh). The installer clones this repo to
 `~/.local/share/mosaic`, installs the engine as a dependency, and links
-`~/.local/bin/mosaic`.
+`~/.local/bin/mosaic`. Each `mosaic` invocation refreshes that install from
+GitHub before starting; set `MOSAIC_SKIP_UPDATE=1` to launch the current
+install without refreshing it.
 
 
 ## Quick start

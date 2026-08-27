@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+launcher="${BASH_SOURCE[0]}"
+launcher_dir="$(cd "$(dirname "$launcher")" && pwd)"
+self="$launcher"
+while [ -L "$self" ]; do
+  link="$(readlink "$self")"
+  case "$link" in
+    /*) self="$link" ;;
+    *) self="$(dirname "$self")/$link" ;;
+  esac
+done
+ROOT="$(cd "$(dirname "$self")/.." && pwd)"
+
+export MOSAIC_PREFIX="$ROOT"
+export MOSAIC_BIN_DIR="$launcher_dir"
+
+if [ "${MOSAIC_SKIP_UPDATE:-0}" != "1" ]; then
+  if command -v curl >/dev/null 2>&1; then
+    if ! curl -fsSL https://raw.githubusercontent.com/morriszdweck/mosaic/main/install.sh | bash; then
+      echo "mosaic: automatic update failed; starting the existing install" >&2
+    fi
+  else
+    echo "mosaic: curl is unavailable; starting the existing install" >&2
+  fi
+fi
+
+exec "$ROOT/bin/mosaic" "$@"
