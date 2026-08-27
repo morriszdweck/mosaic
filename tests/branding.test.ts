@@ -17,8 +17,8 @@ describe("wordmark", () => {
     expect(widths.size).toBe(1);
   });
 
-  test("says Mosaic, not the engine's name", () => {
-    expect(WORDMARK.join("").toLowerCase()).not.toContain("opencode");
+  test("says mosaic, not the engine's name", () => {
+    expect(WORDMARK).toEqual(["mosaic"]);
   });
 });
 

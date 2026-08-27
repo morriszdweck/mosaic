@@ -9,12 +9,8 @@ import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
  * engine instead of forking it.
  */
 
-/** Block-capital wordmark, drawn in the same style the host uses. */
-const WORDMARK = [
-  "█▀▄▀█ █▀▀█ █▀▀▀ █▀▀█ ▀█▀ █▀▀█",
-  "█ █ █ █  █ ▀▀▀█ █▄▄█  █  █   ",
-  "▀   ▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀ ▀▀▀▀",
-];
+/** Literal product name for the home-screen splash. */
+const WORDMARK = ["mosaic"];
 
 /**
  * Example prompts. Deliberately spread across research, writing, analysis and
