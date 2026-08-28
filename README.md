@@ -80,6 +80,10 @@ Inside the TUI:
   context and forget anything that is no longer useful.
 - `/runs` opens the run history for the current directory, including sessions
   created by scheduled work.
+- `/tasks` opens the scheduler control center, where you can review and cancel
+  conversation, heartbeat, and standing tasks.
+- `/search` searches the current directory's runs, messages, memories, files,
+  and file artifacts, with previews for matching files.
 - `/browser` checks Kimi WebBridge. If it is not connected, the agent will give
   you the Chrome extension link needed to connect your browser.
 

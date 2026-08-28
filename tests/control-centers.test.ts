@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 import type { Session } from "@opencode-ai/sdk/v2";
 import { memoryOptions } from "../src/plugin/branding/memory-control.tsx";
 import { runOptions } from "../src/plugin/branding/runs-control.tsx";
+import { matchesQuery, searchOptions, type SearchResult } from "../src/plugin/branding/search-control.tsx";
+import { taskOptions } from "../src/plugin/branding/tasks-control.tsx";
+import type { Task } from "../src/plugin/schedule/store.ts";
 
 describe("memory control center options", () => {
   test("keeps newest memories first and exposes scope and usage", () => {
@@ -67,4 +70,87 @@ describe("runs control center options", () => {
     expect(options[1]?.description).toContain("/work/project");
   });
 
+});
+
+describe("tasks control center options", () => {
+  test("orders upcoming work and exposes scope and last-run status", () => {
+    const tasks = [
+      {
+        id: 1,
+        sessionID: "current",
+        scope: "session",
+        directory: "",
+        heartbeat: true,
+        prompt: "Check the deployment",
+        dueAt: 6_000,
+        repeat: 600,
+        recurrence: null,
+        when: "every 10m",
+        fired: 2,
+        createdAt: 1_000,
+        done: false,
+        lastRunAt: null,
+        lastStatus: null,
+        lastOutput: null,
+      },
+      {
+        id: 2,
+        sessionID: "",
+        scope: "standalone",
+        directory: "/work/project",
+        heartbeat: false,
+        prompt: "Send the daily brief",
+        dueAt: 4_000,
+        repeat: null,
+        recurrence: null,
+        when: "at 09:00",
+        fired: 1,
+        createdAt: 2_000,
+        done: false,
+        lastRunAt: 3_000,
+        lastStatus: "failed",
+        lastOutput: "Provider unavailable",
+      },
+    ] satisfies Task[];
+
+    const options = taskOptions(tasks, 3_000);
+
+    expect(options.map((option) => option.value)).toEqual([2, 1]);
+    expect(options[0]?.category).toBe("Standing task");
+    expect(options[0]?.footer).toContain("last failed");
+    expect(options[1]?.category).toBe("Heartbeat");
+  });
+});
+
+describe("search control center", () => {
+  test("matches every search term without depending on case", () => {
+    expect(matchesQuery("Launch checklist and final review", "FINAL launch")).toBe(true);
+    expect(matchesQuery("Launch checklist", "launch review")).toBe(false);
+  });
+
+  test("groups result types with useful display metadata", () => {
+    const results = [
+      {
+        kind: "message",
+        sessionID: "run-1",
+        title: "Launch plan",
+        role: "user",
+        snippet: "Review the final launch checklist",
+        createdAt: 2_000,
+      },
+      {
+        kind: "file",
+        path: "notes/launch.md",
+        line: 4,
+        snippet: "The launch checklist is ready.",
+      },
+    ] satisfies SearchResult[];
+
+    const options = searchOptions(results);
+
+    expect(options[0]?.category).toBe("Messages");
+    expect(options[0]?.description).toContain("Review the final launch checklist");
+    expect(options[1]?.category).toBe("Files");
+    expect(options[1]?.footer).toContain("line 4");
+  });
 });

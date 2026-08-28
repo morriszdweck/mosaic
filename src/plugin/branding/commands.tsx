@@ -1,6 +1,8 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import { showMemoryControlCenter } from "./memory-control.tsx";
 import { showRunsControlCenter } from "./runs-control.tsx";
+import { showSearchControlCenter } from "./search-control.tsx";
+import { showTasksControlCenter } from "./tasks-control.tsx";
 
 export const MOSAIC_COMMANDS = [
   {
@@ -17,6 +19,20 @@ export const MOSAIC_COMMANDS = [
     description: "Browse previous sessions and scheduled runs",
     category: "Mosaic",
   },
+  {
+    name: "tasks",
+    title: "Tasks",
+    value: "mosaic.tasks",
+    description: "Manage scheduled tasks and heartbeats",
+    category: "Mosaic",
+  },
+  {
+    name: "search",
+    title: "Search Mosaic",
+    value: "mosaic.search",
+    description: "Search runs, messages, memories, and files",
+    category: "Mosaic",
+  },
 ] as const;
 
 type MosaicCommandName = (typeof MOSAIC_COMMANDS)[number]["name"];
@@ -25,6 +41,8 @@ type MosaicCommandOpener = (api: TuiPluginApi) => void | Promise<void>;
 const OPENERS: Record<MosaicCommandName, MosaicCommandOpener> = {
   memory: showMemoryControlCenter,
   runs: showRunsControlCenter,
+  tasks: showTasksControlCenter,
+  search: showSearchControlCenter,
 };
 
 export function registerMosaicCommands(api: TuiPluginApi): void {

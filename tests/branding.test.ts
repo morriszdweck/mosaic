@@ -110,11 +110,13 @@ describe("replaced interface plugins", () => {
 });
 
 describe("mosaic slash commands", () => {
-  test("exposes the memory and runs control centers", () => {
-    expect(MOSAIC_COMMANDS.map((command) => command.name)).toEqual(["memory", "runs"]);
+  test("exposes Mosaic control centers", () => {
+    expect(MOSAIC_COMMANDS.map((command) => command.name)).toEqual(["memory", "runs", "tasks", "search"]);
     expect(MOSAIC_COMMANDS.map((command) => command.value)).toEqual([
       "mosaic.memory",
       "mosaic.runs",
+      "mosaic.tasks",
+      "mosaic.search",
     ]);
   });
 });
