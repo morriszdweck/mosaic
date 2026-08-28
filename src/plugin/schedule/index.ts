@@ -235,7 +235,7 @@ export const SchedulePlugin: Plugin = async ({ client, directory }) => {
                     ...standing.map(
                       (t) =>
                         `[${t.id}] ${t.when} (${describeWhen(t)}) — ${t.prompt.split("\n")[0]}` +
-                        (t.lastStatus ? ` — last run ${t.lastStatus}` : ""),
+                        (t.paused ? " — paused" : t.lastStatus ? ` — last run ${t.lastStatus}` : ""),
                     ),
                   ].join("\n"),
                 );

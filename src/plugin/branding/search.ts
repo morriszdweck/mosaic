@@ -36,9 +36,7 @@ export async function searchMosaic(api: TuiPluginApi, query: string): Promise<Se
   const outcomes = await Promise.allSettled([
     Promise.resolve().then(() => searchMemories(directory, query)),
     searchSessions(api, directory, query),
-    api.client.find
-      .text({ directory, pattern: escapeRegExp(query) }, { throwOnError: true })
-      .then((response) => searchFileContents(response.data)),
+    searchFileContentResults(api, directory, query),
     api.client.find
       .files({ directory, query, type: "file", limit: MAX_FILE_MATCHES }, { throwOnError: true })
       .then((response) => searchFileNames(response.data, query)),
@@ -68,6 +66,20 @@ export async function searchMosaic(api: TuiPluginApi, query: string): Promise<Se
     results: dedupeResults(results).slice(0, MAX_RESULTS),
     incomplete: [...new Set(incomplete)],
   };
+}
+
+async function searchFileContentResults(api: TuiPluginApi, directory: string, query: string): Promise<SearchResult[]> {
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  const responses = await Promise.all(
+    terms.map((term) => api.client.find.text({ directory, pattern: escapeRegExp(term) }, { throwOnError: true })),
+  );
+  const matches = new Map<string, FileTextMatch>();
+  for (const response of responses) {
+    for (const match of response.data) {
+      if (matchesQuery(match.lines.text, query)) matches.set(`${match.path.text}:${match.line_number}`, match);
+    }
+  }
+  return searchFileContents([...matches.values()]);
 }
 
 function searchMemories(directory: string, query: string): SearchResult[] {

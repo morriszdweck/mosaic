@@ -60,6 +60,13 @@ describe("heartbeat", () => {
     expect(store.stopHeartbeats("ses_1")).toBe(0);
   });
 
+  test("a paused heartbeat is no longer reported as running", () => {
+    const heartbeat = beat();
+    expect(store.setPaused(heartbeat.id, true)).toBe(true);
+    expect(store.heartbeatFor("ses_1")).toBeNull();
+    expect(store.list("ses_1")).toHaveLength(1);
+  });
+
   // Two standing checks in one conversation interleave into reports nobody can
   // follow, so the tool replaces rather than stacking.
   test("only one can be current per session", () => {

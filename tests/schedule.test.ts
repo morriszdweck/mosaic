@@ -86,6 +86,36 @@ describe("tasks", () => {
     expect(store.list("ses_1")).toHaveLength(0);
   });
 
+  test("pause keeps a task listed but removes it from due work until resumed", () => {
+    const task = add({ repeat: 600 });
+    expect(store.setPaused(task.id, true)).toBe(true);
+    expect(store.list("ses_1")[0]?.paused).toBe(true);
+    expect(store.due("ses_1", NOW)).toHaveLength(0);
+    expect(store.setPaused(task.id, false)).toBe(true);
+    expect(store.due("ses_1", NOW)).toHaveLength(1);
+  });
+
+  test("edits a pending task without erasing its run history", () => {
+    const task = add({ dueAt: NOW + 600_000 });
+    store.recordRun(task.id, "failed", "previous result", NOW);
+    const parsed = parseWhen("every day at 09:00", NOW);
+    expect(
+      store.update({
+        id: task.id,
+        prompt: "updated instruction",
+        dueAt: parsed.dueAt,
+        repeat: parsed.repeat,
+        recurrence: parsed.recurrence ?? null,
+        when: "every day at 09:00",
+      }),
+    ).toBe(true);
+    const updated = store.get(task.id);
+    expect(updated?.prompt).toBe("updated instruction");
+    expect(updated?.recurrence).toEqual({ kind: "daily", minute: 540 });
+    expect(updated?.lastStatus).toBe("failed");
+    expect(updated?.lastOutput).toBe("previous result");
+  });
+
   test("refuses an empty prompt and a too-fast repeat", () => {
     expect(() => add({ prompt: "  " })).toThrow();
     expect(() => add({ repeat: 5 })).toThrow(/at least 60/);
@@ -287,6 +317,7 @@ describe("upgrading an existing database", () => {
     expect(tasks).toHaveLength(1);
     expect(tasks[0]?.scope).toBe("session");
     expect(tasks[0]?.recurrence).toBeNull();
+    expect(tasks[0]?.paused).toBe(false);
     expect(upgraded.listStandalone()).toHaveLength(0);
     upgraded.close();
   });

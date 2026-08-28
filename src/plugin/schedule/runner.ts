@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -101,6 +101,12 @@ export function runOne(store: TaskStore, task: Task): RunOutcome {
   return result;
 }
 
+export async function runOneAsync(store: TaskStore, task: Task): Promise<RunOutcome> {
+  const result = await runTaskAsync(task);
+  store.recordRun(task.id, result.status === "ok" ? "ok" : "failed", result.detail, Date.now());
+  return result;
+}
+
 function runTask(task: Task): RunOutcome {
   const timeout = Number(process.env.MOSAIC_TASK_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
   // A directory that has since been deleted must not take the run down with it.
@@ -120,6 +126,63 @@ function runTask(task: Task): RunOutcome {
   if (result.signal) return { task, status: "failed", detail: `Killed after ${Math.round(timeout / 60_000)}m.` };
   if (result.status !== 0) return { task, status: "failed", detail: output || `Exited with ${result.status}.` };
   return { task, status: "ok", detail: output };
+}
+
+function runTaskAsync(task: Task): Promise<RunOutcome> {
+  const timeout = Number(process.env.MOSAIC_TASK_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
+  const cwd = task.directory && existsSync(task.directory) ? task.directory : homedir();
+
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    let finished = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const output = () => `${stdout}${stderr ? `\n${stderr}` : ""}`.trim();
+    const finish = (result: RunOutcome) => {
+      if (finished) return;
+      finished = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+
+    let child;
+    try {
+      child = spawn(join(root(), "bin", "mosaic"), ["run", task.prompt], {
+        cwd,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, MOSAIC_HOME: mosaicHome(), MOSAIC_SCHEDULED_TASK: String(task.id) },
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      finish({ task, status: "failed", detail });
+      return;
+    }
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.once("error", (error) => {
+      finish({ task, status: "failed", detail: `${error.message}\n${output()}`.trim() });
+    });
+    child.once("close", (status, signal) => {
+      if (signal) {
+        finish({ task, status: "failed", detail: `Killed after ${Math.round(timeout / 60_000)}m.` });
+        return;
+      }
+      finish({
+        task,
+        status: status === 0 ? "ok" : "failed",
+        detail: status === 0 ? output() : output() || `Exited with ${status}.`,
+      });
+    });
+    timer = setTimeout(() => {
+      child.kill();
+      finish({ task, status: "failed", detail: `Killed after ${Math.round(timeout / 60_000)}m.` });
+    }, timeout);
+  });
 }
 
 /** Append a line per run to ~/.mosaic/logs/tasks.log, so a failure leaves a trace. */

@@ -62,6 +62,7 @@ export interface Task {
   createdAt: number;
   /** Set once a one-shot has fired, so it is not re-run. */
   done: boolean;
+  paused: boolean;
   lastRunAt: number | null;
   lastStatus: "ok" | "failed" | null;
   /** Tail of the last run's output, so `mosaic tasks` can show what happened. */
@@ -95,7 +96,8 @@ export class TaskStore {
         recurrence TEXT,
         last_run_at INTEGER,
         last_status TEXT,
-        last_output TEXT
+        last_output TEXT,
+        paused INTEGER NOT NULL DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS tasks_due ON tasks(due_at, done);
     `);
@@ -122,6 +124,7 @@ export class TaskStore {
     add("last_run_at", "INTEGER");
     add("last_status", "TEXT");
     add("last_output", "TEXT");
+    add("paused", "INTEGER NOT NULL DEFAULT 0");
   }
 
   add(input: {
@@ -159,7 +162,7 @@ export class TaskStore {
     return toTask(row);
   }
 
-  /** Pending session tasks, optionally for one session. */
+  /** Pending session tasks, optionally for one session. Paused tasks remain visible. */
   list(sessionID?: string): Task[] {
     const rows = sessionID
       ? this.db
@@ -169,7 +172,7 @@ export class TaskStore {
     return (rows as Array<Record<string, unknown>>).map(toTask);
   }
 
-  /** Pending standalone tasks, newest schedule first. Optionally one directory. */
+  /** Pending standalone tasks, newest schedule first. Paused tasks remain visible. */
   listStandalone(directory?: string): Task[] {
     const rows = directory
       ? this.db
@@ -180,11 +183,11 @@ export class TaskStore {
   }
 
   due(sessionID: string, now = Date.now()): Task[] {
-    return this.list(sessionID).filter((t) => t.dueAt <= now);
+    return this.list(sessionID).filter((t) => !t.paused && t.dueAt <= now);
   }
 
   dueStandalone(now = Date.now()): Task[] {
-    return this.listStandalone().filter((t) => t.dueAt <= now);
+    return this.listStandalone().filter((t) => !t.paused && t.dueAt <= now);
   }
 
   /**
@@ -205,7 +208,7 @@ export class TaskStore {
     this.db.prepare("UPDATE tasks SET fired = fired + 1, due_at = ? WHERE id = ?").run(next, id);
   }
 
-  /** Store the outcome of a standalone run so a listing can show what happened. */
+  /** Store the outcome of a task run so a listing can show what happened. */
   recordRun(id: number, status: "ok" | "failed", output: string, now = Date.now()): void {
     const tail = output.length > OUTPUT_LIMIT ? output.slice(-OUTPUT_LIMIT) : output;
     this.db.prepare("UPDATE tasks SET last_run_at = ?, last_status = ?, last_output = ? WHERE id = ?").run(
@@ -216,6 +219,45 @@ export class TaskStore {
     );
   }
 
+  /** Pause or resume a pending task without changing its next occurrence. */
+  setPaused(id: number, paused: boolean): boolean {
+    return (
+      this.db
+        .prepare("UPDATE tasks SET paused = ? WHERE id = ? AND done = 0")
+        .run(paused ? 1 : 0, id).changes > 0
+    );
+  }
+
+  /** Update a pending task's prompt and schedule, preserving its run history. */
+  update(input: {
+    id: number;
+    prompt: string;
+    dueAt: number;
+    repeat: number | null;
+    recurrence: Recurrence | null;
+    when: string;
+  }): boolean {
+    if (!input.prompt.trim()) throw new Error("A task needs a prompt.");
+    if (!input.when.trim()) throw new Error("A task needs a schedule.");
+    if (input.repeat != null && input.repeat < 60) throw new Error("Repeat must be at least 60 seconds.");
+    return (
+      this.db
+        .prepare(
+          `UPDATE tasks
+           SET prompt = ?, due_at = ?, repeat = ?, recurrence = ?, when_text = ?
+           WHERE id = ? AND done = 0`,
+        )
+        .run(
+          input.prompt.trim(),
+          input.dueAt,
+          input.repeat,
+          input.recurrence ? JSON.stringify(input.recurrence) : null,
+          input.when.trim(),
+          input.id,
+        ).changes > 0
+    );
+  }
+
   get(id: number): Task | null {
     const row = this.db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as Record<string, unknown> | null;
     return row ? toTask(row) : null;
@@ -223,7 +265,7 @@ export class TaskStore {
 
   /** The running heartbeat for a session, if any. Only one at a time. */
   heartbeatFor(sessionID: string): Task | null {
-    return this.list(sessionID).find((t) => t.heartbeat) ?? null;
+    return this.list(sessionID).find((t) => t.heartbeat && !t.paused) ?? null;
   }
 
   /** Stop every heartbeat in a session. Returns how many were stopped. */
@@ -263,6 +305,7 @@ function toTask(row: Record<string, unknown>): Task {
     lastRunAt: (row.last_run_at as number | null) ?? null,
     lastStatus: (row.last_status as "ok" | "failed" | null) ?? null,
     lastOutput: (row.last_output as string | null) ?? null,
+    paused: (row.paused as number) === 1,
   };
 }
 

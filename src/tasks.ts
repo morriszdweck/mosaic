@@ -42,7 +42,8 @@ function ago(at: number | null): string {
 function describeTask(task: Task): string {
   const last = task.lastRunAt ? `last run ${ago(task.lastRunAt)} (${task.lastStatus})` : "not yet run";
   const where = task.directory ? `\n     in ${task.directory}` : "";
-  return `[${task.id}] ${describeWhen(task)}\n     ${task.prompt.split("\n")[0]}\n     ${last}${where}`;
+  const state = task.paused ? "paused" : "active";
+  return `[${task.id}] ${describeWhen(task)} (${state})\n     ${task.prompt.split("\n")[0]}\n     ${last}${where}`;
 }
 
 function list(store: TaskStore): void {
