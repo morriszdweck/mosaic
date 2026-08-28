@@ -74,9 +74,14 @@ mosaic run "..."      # one-shot, no TUI
 ```
 
 
-Inside the TUI, run `/browser` to check Kimi WebBridge. If it is not connected,
-the agent will give you the Chrome extension link needed to connect your
-browser.
+Inside the TUI:
+
+- `/memory` opens the memory control center, where you can search remembered
+  context and forget anything that is no longer useful.
+- `/runs` opens the run history for the current directory, including sessions
+  created by scheduled work.
+- `/browser` checks Kimi WebBridge. If it is not connected, the agent will give
+  you the Chrome extension link needed to connect your browser.
 
 
 Try one of these:

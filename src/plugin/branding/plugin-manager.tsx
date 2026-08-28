@@ -1,4 +1,5 @@
 import type { TuiPluginApi, TuiPluginStatus } from "@opencode-ai/plugin/tui";
+import { registerMosaicCommands } from "./commands.tsx";
 
 const BRANDING_PLUGIN_ID = "mosaic-branding";
 const HOST_MANAGER_PLUGIN_ID = "internal:plugin-manager";
@@ -108,6 +109,7 @@ async function installPlugin(api: TuiPluginApi, spec: string, global: boolean): 
 
 export async function registerPluginManager(api: TuiPluginApi): Promise<void> {
   await api.plugins.deactivate(HOST_MANAGER_PLUGIN_ID).catch(() => false);
+  registerMosaicCommands(api);
   api.keymap.registerLayer({
     commands: [
       {

@@ -1,6 +1,7 @@
 import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { registerPluginManager } from "./plugin-manager.tsx";
 
+export { MOSAIC_COMMANDS } from "./commands.tsx";
 export { visiblePluginStatuses } from "./plugin-manager.tsx";
 
 /**

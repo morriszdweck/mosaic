@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { buildTuiConfig } from "../src/config.ts";
 import {
+  MOSAIC_COMMANDS,
   PLACEHOLDERS,
   SPLASH_TEXT,
   visiblePluginStatuses,
@@ -105,5 +106,15 @@ describe("replaced interface plugins", () => {
     const { TIPS } = (await import("../src/plugin/branding/index.tsx")) as unknown as { TIPS: string[] };
     expect(TIPS.length).toBeGreaterThan(3);
     for (const tip of TIPS) expect(tip.toLowerCase()).not.toContain("coding");
+  });
+});
+
+describe("mosaic slash commands", () => {
+  test("exposes the memory and runs control centers", () => {
+    expect(MOSAIC_COMMANDS.map((command) => command.name)).toEqual(["memory", "runs"]);
+    expect(MOSAIC_COMMANDS.map((command) => command.value)).toEqual([
+      "mosaic.memory",
+      "mosaic.runs",
+    ]);
   });
 });
