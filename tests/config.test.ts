@@ -170,6 +170,20 @@ describe("display names", () => {
     expect(zen.models["big-pickle"]!.name).toBe("Mosaic Free");
   });
 
+  test("current Zen free models have readable names", () => {
+    const zen = buildConfig("/opt/mosaic", "/home/u/.mosaic").provider!.opencode as {
+      models: Record<string, { name: string }>;
+    };
+    // Synced with https://opencode.ai/docs/zen (pricing table, Sep 2026) plus
+    // the extra `-free` IDs currently returned by /zen/v1/models.
+    expect(zen.models["muse-spark-1.3-contributor-free"]!.name).toBe("Muse Spark 1.3 Free");
+    expect(zen.models["muse-spark-1.2-contributor-free"]!.name).toBe("Muse Spark 1.2 Free");
+    expect(zen.models["mimo-v2.5-free"]!.name).toBe("MiMo V2.5 Free");
+    expect(zen.models["ling-3.0-flash-fin-free"]!.name).toBe("Ling 3.0 Flash Fin Free");
+    expect(zen.models["nemotron-3-ultra-free"]!.name).toBe("Nemotron 3 Ultra Free");
+    expect(zen.models["nemotron-3.5-lightning-free"]!.name).toBe("Nemotron 3.5 Lightning Free");
+  });
+
   test("the default model is the one shown as Mosaic Free", async () => {
     const { DEFAULT_MODEL } = await import("../src/config.ts");
     expect(buildConfig("/opt/mosaic", "/home/u/.mosaic").model).toBe(DEFAULT_MODEL);

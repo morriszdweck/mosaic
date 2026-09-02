@@ -40,8 +40,11 @@ Mosaic adds:
   later in the same conversation, or as a standing task that runs on the clock
   whether or not Mosaic is open.
 - **Free tier** — start without an account or card and get access
-  to a curated selection of cheap models from OpenCode Zen, including models such as
- Mosaic Free (Big pickle), MiMo, and more.
+  to a curated selection of free models from OpenCode Zen, with readable names
+  in the `/model` picker: Mosaic Free (Big Pickle), Muse Spark 1.3 Free,
+  Muse Spark 1.2 Free, MiMo V2.5 Free, Ling 3.0 Flash Fin Free,
+  Nemotron 3 Ultra Free, and Nemotron 3.5 Lightning Free
+  (plus DeepSeek V4 Flash Free and Laguna S 2.1 Free where the Zen API offers them).
 - **Personality** — a `SOUL.md` that shapes tone and standing preferences.
 - **A point of view** — Mosaic starts from questions, plans, evidence, and
   drafts; code is there when it is the right tool.

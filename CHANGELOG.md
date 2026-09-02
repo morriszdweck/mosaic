@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Labelled the current OpenCode Zen free models with readable names in the
+  `/model` picker: Muse Spark 1.3 Free, Muse Spark 1.2 Free, MiMo V2.5 Free,
+  Ling 3.0 Flash Fin Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free,
+  plus DeepSeek V4 Flash Free and Laguna S 2.1 Free where offered. Mosaic Free
+  (Big Pickle) stays the default.
+- Bumped the `opencode-ai` engine to 1.18.27.
 - Switched plugin distribution to OpenCode's native package architecture;
   removed the Mosaic-specific manifest/store and the old `/plugins` guide.
 

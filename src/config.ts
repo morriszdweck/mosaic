@@ -96,11 +96,26 @@ export function buildConfig(root = ROOT, home = MOSAIC_HOME): MosaicConfig {
  */
 export const DEFAULT_MODEL = "opencode/big-pickle";
 
+/**
+ * Friendly names for the free OpenCode Zen models (https://opencode.ai/docs/zen,
+ * plus whatever `GET https://opencode.ai/zen/v1/models` currently returns with
+ * a `-free` suffix). `big-pickle` stays the default and keeps the "Mosaic Free"
+ * name; the rest get their upstream names in readable form so the /model picker
+ * never shows a bare codename.
+ */
 const PROVIDER_LABELS: Record<string, unknown> = {
   opencode: {
     name: "Free (via OC Zen)",
     models: {
       "big-pickle": { name: "Mosaic Free" },
+      "muse-spark-1.3-contributor-free": { name: "Muse Spark 1.3 Free" },
+      "muse-spark-1.2-contributor-free": { name: "Muse Spark 1.2 Free" },
+      "mimo-v2.5-free": { name: "MiMo V2.5 Free" },
+      "ling-3.0-flash-fin-free": { name: "Ling 3.0 Flash Fin Free" },
+      "nemotron-3-ultra-free": { name: "Nemotron 3 Ultra Free" },
+      "nemotron-3.5-lightning-free": { name: "Nemotron 3.5 Lightning Free" },
+      "deepseek-v4-flash-free": { name: "DeepSeek V4 Flash Free" },
+      "laguna-s-2.1-free": { name: "Laguna S 2.1 Free" },
     },
   },
 };
