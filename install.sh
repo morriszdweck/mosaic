@@ -19,6 +19,7 @@ die() {
 }
 
 command -v bun >/dev/null 2>&1 || die "Bun is required — install it from https://bun.sh, then re-run this."
+command -v git >/dev/null 2>&1 || die "Git is required — install it, then re-run this."
 
 echo "Installing Mosaic…"
 
